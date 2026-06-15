@@ -13,6 +13,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -35,6 +36,9 @@ import com.example.bookclub.data.local.entity.CachedBookEntity
 import com.example.bookclub.data.local.entity.RoomBookEntity
 import com.example.bookclub.viewmodel.BookViewModel
 import com.example.bookclub.viewmodel.RoomViewModel
+
+private const val ROOM_TITLE_MAX_LENGTH = 60
+private const val ROOM_DESCRIPTION_MAX_LENGTH = 300
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -90,7 +94,7 @@ fun CreateRoomScreen(
             }
 
             if (title.isBlank()) {
-                title = "${book.title} Club"
+                title = "${book.title} Club".take(ROOM_TITLE_MAX_LENGTH)
             }
         }
     }
@@ -127,7 +131,7 @@ fun CreateRoomScreen(
         manualBookAuthor = ""
 
         if (title.isBlank()) {
-            title = "$cleanTitle Club"
+            title = "$cleanTitle Club".take(ROOM_TITLE_MAX_LENGTH)
         }
     }
 
@@ -136,8 +140,8 @@ fun CreateRoomScreen(
             TopAppBar(
                 title = { Text("Create room") },
                 navigationIcon = {
-                    TextButton(onClick = onBack) {
-                        Text("Back")
+                    IconButton(onClick = onBack) {
+                        Text("←", style = MaterialTheme.typography.titleLarge)
                     }
                 }
             )
@@ -161,8 +165,15 @@ fun CreateRoomScreen(
             item {
                 OutlinedTextField(
                     value = title,
-                    onValueChange = { title = it },
+                    onValueChange = {
+                        if (it.length <= ROOM_TITLE_MAX_LENGTH) {
+                            title = it
+                        }
+                    },
                     label = { Text("Room title") },
+                    supportingText = {
+                        Text("${title.length}/$ROOM_TITLE_MAX_LENGTH")
+                    },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -252,9 +263,17 @@ fun CreateRoomScreen(
             item {
                 OutlinedTextField(
                     value = description,
-                    onValueChange = { description = it },
+                    onValueChange = {
+                        if (it.length <= ROOM_DESCRIPTION_MAX_LENGTH) {
+                            description = it
+                        }
+                    },
                     label = { Text("Room description") },
+                    supportingText = {
+                        Text("${description.length}/$ROOM_DESCRIPTION_MAX_LENGTH")
+                    },
                     minLines = 3,
+                    maxLines = 5,
                     modifier = Modifier.fillMaxWidth()
                 )
             }

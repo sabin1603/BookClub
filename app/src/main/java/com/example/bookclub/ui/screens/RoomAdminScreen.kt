@@ -34,6 +34,9 @@ import com.example.bookclub.data.local.entity.RoomBookEntity
 import com.example.bookclub.data.local.model.MemberWithUser
 import com.example.bookclub.viewmodel.RoomViewModel
 
+private const val ROOM_TITLE_MAX_LENGTH = 60
+private const val ROOM_DESCRIPTION_MAX_LENGTH = 300
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RoomAdminScreen(
@@ -61,8 +64,8 @@ fun RoomAdminScreen(
 
     LaunchedEffect(room?.id) {
         room?.let {
-            title = it.title
-            description = it.description
+            title = it.title.take(ROOM_TITLE_MAX_LENGTH)
+            description = it.description.take(ROOM_DESCRIPTION_MAX_LENGTH)
             isPrivate = it.isPrivate
             accessCode = it.accessCode ?: ""
         }
@@ -105,8 +108,16 @@ fun RoomAdminScreen(
             item {
                 OutlinedTextField(
                     value = title,
-                    onValueChange = { title = it },
+                    onValueChange = {
+                        if (it.length <= ROOM_TITLE_MAX_LENGTH) {
+                            title = it
+                        }
+                    },
                     label = { Text("Room title") },
+                    supportingText = {
+                        Text("${title.length}/$ROOM_TITLE_MAX_LENGTH")
+                    },
+                    singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -114,9 +125,17 @@ fun RoomAdminScreen(
             item {
                 OutlinedTextField(
                     value = description,
-                    onValueChange = { description = it },
+                    onValueChange = {
+                        if (it.length <= ROOM_DESCRIPTION_MAX_LENGTH) {
+                            description = it
+                        }
+                    },
                     label = { Text("Description") },
+                    supportingText = {
+                        Text("${description.length}/$ROOM_DESCRIPTION_MAX_LENGTH")
+                    },
                     minLines = 3,
+                    maxLines = 5,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -140,6 +159,7 @@ fun RoomAdminScreen(
                         value = accessCode,
                         onValueChange = { accessCode = it },
                         label = { Text("Access code") },
+                        singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -191,6 +211,7 @@ fun RoomAdminScreen(
                     value = bookTitle,
                     onValueChange = { bookTitle = it },
                     label = { Text("Book title") },
+                    singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -200,6 +221,7 @@ fun RoomAdminScreen(
                     value = bookAuthor,
                     onValueChange = { bookAuthor = it },
                     label = { Text("Book author") },
+                    singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -209,6 +231,7 @@ fun RoomAdminScreen(
                     value = bookYear,
                     onValueChange = { bookYear = it },
                     label = { Text("First publish year optional") },
+                    singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -278,6 +301,7 @@ fun RoomAdminScreen(
                     value = banEmail,
                     onValueChange = { banEmail = it },
                     label = { Text("Ban by email") },
+                    singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -326,6 +350,7 @@ private fun BookAdminCard(
                 text = book.title,
                 style = MaterialTheme.typography.titleMedium
             )
+
             Text("by ${book.author}")
 
             Row(

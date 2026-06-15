@@ -62,6 +62,14 @@ class RoomRepository(
             return Result.failure(Exception("Room title must have at least 3 characters."))
         }
 
+        if (title.trim().length > 60) {
+            return Result.failure(Exception("Room title cannot be longer than 60 characters."))
+        }
+
+        if (description.trim().length > 300) {
+            return Result.failure(Exception("Room description cannot be longer than 300 characters."))
+        }
+
         if (isPrivate && accessCode.isNullOrBlank()) {
             return Result.failure(Exception("Private rooms need an access code."))
         }
@@ -206,6 +214,14 @@ class RoomRepository(
 
         if (title.trim().length < 3) {
             return Result.failure(Exception("Room title must have at least 3 characters."))
+        }
+
+        if (title.trim().length > 60) {
+            return Result.failure(Exception("Room title cannot be longer than 60 characters."))
+        }
+
+        if (description.trim().length > 300) {
+            return Result.failure(Exception("Room description cannot be longer than 300 characters."))
         }
 
         if (isPrivate && accessCode.isNullOrBlank()) {

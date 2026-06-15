@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import com.example.bookclub.data.local.entity.RoomBookEntity
 import com.example.bookclub.data.local.model.MessageWithUser
 import com.example.bookclub.viewmodel.RoomViewModel
+import androidx.compose.ui.text.style.TextOverflow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -115,7 +116,12 @@ fun RoomDetailsScreen(
                     Text("Room ID: #${currentRoom.id}")
 
                     if (currentRoom.description.isNotBlank()) {
-                        Text(currentRoom.description)
+                        Text(
+                            text = currentRoom.description,
+                            maxLines = 6,
+                            overflow = TextOverflow.Ellipsis,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
                     }
 
                     HorizontalDivider()

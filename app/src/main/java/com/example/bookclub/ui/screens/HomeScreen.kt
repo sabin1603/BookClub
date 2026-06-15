@@ -35,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.bookclub.data.local.entity.BookClubRoomEntity
 import com.example.bookclub.viewmodel.RoomViewModel
+import androidx.compose.ui.text.style.TextOverflow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -217,6 +218,8 @@ private fun RoomCard(
                 Text(
                     text = room.title,
                     style = MaterialTheme.typography.titleLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
                 )
 
@@ -238,6 +241,8 @@ private fun RoomCard(
                 Text(
                     text = room.description,
                     style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(top = 8.dp)
                 )
             }
