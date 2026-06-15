@@ -21,7 +21,23 @@ data class OpenLibraryBookDto(
     val firstPublishYear: Int? = null,
 
     @SerializedName("cover_i")
-    val coverId: Int? = null
+    val coverId: Int? = null,
+
+    @SerializedName("editions")
+    val editions: OpenLibraryEditionsDto? = null
+)
+
+data class OpenLibraryEditionsDto(
+    @SerializedName("docs")
+    val docs: List<OpenLibraryEditionDto> = emptyList()
+)
+
+data class OpenLibraryEditionDto(
+    @SerializedName("title")
+    val title: String? = null,
+
+    @SerializedName("language")
+    val language: List<String>? = null
 )
 
 data class OpenLibraryWorkDto(

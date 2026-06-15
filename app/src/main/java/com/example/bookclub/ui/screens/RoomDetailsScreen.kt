@@ -30,6 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.bookclub.data.local.entity.RoomBookEntity
 import com.example.bookclub.data.local.model.MessageWithUser
 import com.example.bookclub.viewmodel.RoomViewModel
 
@@ -41,6 +42,7 @@ fun RoomDetailsScreen(
     viewModel: RoomViewModel = viewModel()
 ) {
     val room by viewModel.observeRoom(roomId).collectAsState(initial = null)
+    val books by viewModel.observeBooks(roomId).collectAsState(initial = emptyList())
     val messages by viewModel.observeMessages(roomId).collectAsState(initial = emptyList())
 
     var messageText by remember { mutableStateOf("") }
@@ -81,11 +83,12 @@ fun RoomDetailsScreen(
                 elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
             ) {
                 Column(
-                    modifier = Modifier.padding(16.dp)
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Row {
                         Text(
-                            text = currentRoom.bookTitle,
+                            text = currentRoom.title,
                             style = MaterialTheme.typography.headlineSmall,
                             modifier = Modifier.weight(1f)
                         )
@@ -99,17 +102,30 @@ fun RoomDetailsScreen(
                     }
 
                     Text(
-                        text = "by ${currentRoom.bookAuthor}",
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.padding(top = 4.dp)
+                        text = "Room ID: #${currentRoom.id}",
+                        style = MaterialTheme.typography.bodyMedium
                     )
 
                     if (currentRoom.description.isNotBlank()) {
                         Text(
                             text = currentRoom.description,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(top = 12.dp)
+                            style = MaterialTheme.typography.bodyMedium
                         )
+                    }
+
+                    HorizontalDivider()
+
+                    Text(
+                        text = "Books in this room",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+
+                    if (books.isEmpty()) {
+                        Text("No books added.")
+                    } else {
+                        books.forEach { book ->
+                            BookRow(book = book)
+                        }
                     }
                 }
             }
@@ -135,7 +151,10 @@ fun RoomDetailsScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(messages) { message ->
-                    MessageCard(message)
+                    MessageCard(
+                        message = message,
+                        isMine = message.userId == viewModel.currentUserId
+                    )
                 }
             }
 
@@ -168,25 +187,62 @@ fun RoomDetailsScreen(
 }
 
 @Composable
-private fun MessageCard(
-    message: MessageWithUser
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier.padding(12.dp)
-        ) {
-            Text(
-                text = message.username,
-                style = MaterialTheme.typography.labelLarge
-            )
+private fun BookRow(book: RoomBookEntity) {
+    Column {
+        Text(
+            text = book.title,
+            style = MaterialTheme.typography.bodyLarge
+        )
 
-            Text(
-                text = message.content,
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.padding(top = 4.dp)
+        Text(
+            text = "by ${book.author}",
+            style = MaterialTheme.typography.bodyMedium
+        )
+    }
+}
+
+@Composable
+private fun MessageCard(
+    message: MessageWithUser,
+    isMine: Boolean
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = if (isMine) {
+            Arrangement.End
+        } else {
+            Arrangement.Start
+        }
+    ) {
+        Card(
+            modifier = Modifier.fillMaxWidth(0.78f),
+            colors = CardDefaults.cardColors(
+                containerColor = if (isMine) {
+                    MaterialTheme.colorScheme.primaryContainer
+                } else {
+                    MaterialTheme.colorScheme.surfaceVariant
+                }
             )
+        ) {
+            Column(
+                modifier = Modifier.padding(12.dp)
+            ) {
+                Text(
+                    text = if (isMine) "You" else message.username,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = if (isMine) {
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    }
+                )
+
+                Text(
+                    text = message.content,
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
         }
     }
 }

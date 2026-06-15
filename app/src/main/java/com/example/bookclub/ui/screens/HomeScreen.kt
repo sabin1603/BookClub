@@ -49,25 +49,43 @@ fun HomeScreen(
     val actionState by viewModel.actionState.collectAsState()
 
     var showJoinDialog by remember { mutableStateOf(false) }
+    var roomIdText by remember { mutableStateOf("") }
     var accessCode by remember { mutableStateOf("") }
 
     if (showJoinDialog) {
         AlertDialog(
             onDismissRequest = { showJoinDialog = false },
-            title = { Text("Join private room") },
+            title = { Text("Join room") },
             text = {
-                OutlinedTextField(
-                    value = accessCode,
-                    onValueChange = { accessCode = it },
-                    label = { Text("Access code") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedTextField(
+                        value = roomIdText,
+                        onValueChange = { roomIdText = it },
+                        label = { Text("Room ID") },
+                        placeholder = { Text("Example: 3 or #3") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    OutlinedTextField(
+                        value = accessCode,
+                        onValueChange = { accessCode = it },
+                        label = { Text("Access code, only for private rooms") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        viewModel.joinPrivateRoom(accessCode)
+                        viewModel.joinRoomById(
+                            roomIdText = roomIdText,
+                            accessCode = accessCode.ifBlank { null }
+                        )
+                        roomIdText = ""
                         accessCode = ""
                         showJoinDialog = false
                     }
@@ -88,7 +106,12 @@ fun HomeScreen(
             TopAppBar(
                 title = { Text("Hello, ${viewModel.loggedUsername}") },
                 actions = {
-                    TextButton(onClick = onLogout) {
+                    TextButton(
+                        onClick = {
+                            viewModel.logout()
+                            onLogout()
+                        }
+                    ) {
                         Text("Logout")
                     }
                 }
@@ -104,12 +127,12 @@ fun HomeScreen(
                 modifier = Modifier.padding(16.dp)
             ) {
                 Text(
-                    text = "Book Club Rooms",
+                    text = "My Book Club Rooms",
                     style = MaterialTheme.typography.headlineSmall
                 )
 
                 Text(
-                    text = "Create or join rooms to discuss books with other readers.",
+                    text = "Create a room or join one by its ID.",
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(top = 4.dp)
                 )
@@ -139,7 +162,7 @@ fun HomeScreen(
                         onClick = { showJoinDialog = true },
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Join private")
+                        Text("Join by ID")
                     }
                 }
 
@@ -155,7 +178,7 @@ fun HomeScreen(
 
             if (rooms.isEmpty()) {
                 Text(
-                    text = "No rooms yet. Create the first Book Club room.",
+                    text = "No rooms yet. Create a room or join one by ID.",
                     modifier = Modifier.padding(16.dp)
                 )
             } else {
@@ -206,7 +229,7 @@ private fun RoomCard(
             }
 
             Text(
-                text = "${room.bookTitle} — ${room.bookAuthor}",
+                text = "Room ID: #${room.id}",
                 style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier.padding(top = 8.dp)
             )

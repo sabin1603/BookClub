@@ -12,21 +12,25 @@ import com.example.bookclub.data.local.entity.CachedBookEntity
 import com.example.bookclub.data.local.entity.MembershipEntity
 import com.example.bookclub.data.local.entity.MessageEntity
 import com.example.bookclub.data.local.entity.UserEntity
+import com.example.bookclub.data.local.dao.RoomBookDao
+import com.example.bookclub.data.local.entity.RoomBookEntity
 
 @Database(
     entities = [
         UserEntity::class,
         BookClubRoomEntity::class,
+        RoomBookEntity::class,
         MessageEntity::class,
         MembershipEntity::class,
         CachedBookEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun userDao(): UserDao
     abstract fun roomDao(): RoomDao
+    abstract fun roomBookDao(): RoomBookDao
     abstract fun membershipDao(): MembershipDao
     abstract fun messageDao(): MessageDao
     abstract fun cachedBookDao(): CachedBookDao
