@@ -132,6 +132,9 @@ class RoomViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch {
             repository.sendMessage(roomId, userId, content)
+                .onSuccess {
+                    _actionState.value = RoomActionState()
+                }
                 .onFailure { error ->
                     _actionState.value = RoomActionState(errorMessage = error.message)
                 }
@@ -143,24 +146,15 @@ class RoomViewModel(application: Application) : AndroidViewModel(application) {
         title: String,
         description: String,
         isPrivate: Boolean,
-        accessCode: String?
+        accessCode: String?,
+        onSuccess: () -> Unit = {}
     ) {
         val userId = loggedUserId ?: return
 
         viewModelScope.launch {
             repository.updateRoomSettings(roomId, userId, title, description, isPrivate, accessCode)
-                .onFailure { error ->
-                    _actionState.value = RoomActionState(errorMessage = error.message)
-                }
-        }
-    }
-
-    fun deleteRoom(roomId: Long, onSuccess: () -> Unit) {
-        val userId = loggedUserId ?: return
-
-        viewModelScope.launch {
-            repository.deleteRoom(roomId, userId)
                 .onSuccess {
+                    _actionState.value = RoomActionState()
                     onSuccess()
                 }
                 .onFailure { error ->
@@ -169,88 +163,172 @@ class RoomViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun addBook(roomId: Long, book: RoomBookEntity) {
+    fun deleteRoom(
+        roomId: Long,
+        onSuccess: () -> Unit
+    ) {
+        val userId = loggedUserId ?: return
+
+        viewModelScope.launch {
+            repository.deleteRoom(roomId, userId)
+                .onSuccess {
+                    _actionState.value = RoomActionState()
+                    onSuccess()
+                }
+                .onFailure { error ->
+                    _actionState.value = RoomActionState(errorMessage = error.message)
+                }
+        }
+    }
+
+    fun addBook(
+        roomId: Long,
+        book: RoomBookEntity,
+        onSuccess: () -> Unit = {}
+    ) {
         val userId = loggedUserId ?: return
 
         viewModelScope.launch {
             repository.addBook(roomId, userId, book)
+                .onSuccess {
+                    _actionState.value = RoomActionState()
+                    onSuccess()
+                }
                 .onFailure { error ->
                     _actionState.value = RoomActionState(errorMessage = error.message)
                 }
         }
     }
 
-    fun updateBook(roomId: Long, book: RoomBookEntity) {
+    fun updateBook(
+        roomId: Long,
+        book: RoomBookEntity,
+        onSuccess: () -> Unit = {}
+    ) {
         val userId = loggedUserId ?: return
 
         viewModelScope.launch {
             repository.updateBook(roomId, userId, book)
+                .onSuccess {
+                    _actionState.value = RoomActionState()
+                    onSuccess()
+                }
                 .onFailure { error ->
                     _actionState.value = RoomActionState(errorMessage = error.message)
                 }
         }
     }
 
-    fun deleteBook(roomId: Long, bookId: Long) {
+    fun deleteBook(
+        roomId: Long,
+        bookId: Long,
+        onSuccess: () -> Unit = {}
+    ) {
         val userId = loggedUserId ?: return
 
         viewModelScope.launch {
             repository.deleteBook(roomId, userId, bookId)
+                .onSuccess {
+                    _actionState.value = RoomActionState()
+                    onSuccess()
+                }
                 .onFailure { error ->
                     _actionState.value = RoomActionState(errorMessage = error.message)
                 }
         }
     }
 
-    fun setAdmin(roomId: Long, targetUserId: Long, isAdmin: Boolean) {
+    fun setAdmin(
+        roomId: Long,
+        targetUserId: Long,
+        isAdmin: Boolean,
+        onSuccess: () -> Unit = {}
+    ) {
         val userId = loggedUserId ?: return
 
         viewModelScope.launch {
             repository.setAdmin(roomId, userId, targetUserId, isAdmin)
+                .onSuccess {
+                    _actionState.value = RoomActionState()
+                    onSuccess()
+                }
                 .onFailure { error ->
                     _actionState.value = RoomActionState(errorMessage = error.message)
                 }
         }
     }
 
-    fun setCanMessage(roomId: Long, targetUserId: Long, canMessage: Boolean) {
+    fun setCanMessage(
+        roomId: Long,
+        targetUserId: Long,
+        canMessage: Boolean,
+        onSuccess: () -> Unit = {}
+    ) {
         val userId = loggedUserId ?: return
 
         viewModelScope.launch {
             repository.setCanMessage(roomId, userId, targetUserId, canMessage)
+                .onSuccess {
+                    _actionState.value = RoomActionState()
+                    onSuccess()
+                }
                 .onFailure { error ->
                     _actionState.value = RoomActionState(errorMessage = error.message)
                 }
         }
     }
 
-    fun removeMember(roomId: Long, targetUserId: Long) {
+    fun removeMember(
+        roomId: Long,
+        targetUserId: Long,
+        onSuccess: () -> Unit = {}
+    ) {
         val userId = loggedUserId ?: return
 
         viewModelScope.launch {
             repository.removeMember(roomId, userId, targetUserId)
+                .onSuccess {
+                    _actionState.value = RoomActionState()
+                    onSuccess()
+                }
                 .onFailure { error ->
                     _actionState.value = RoomActionState(errorMessage = error.message)
                 }
         }
     }
 
-    fun banMember(roomId: Long, targetUserId: Long) {
+    fun banMember(
+        roomId: Long,
+        targetUserId: Long,
+        onSuccess: () -> Unit = {}
+    ) {
         val userId = loggedUserId ?: return
 
         viewModelScope.launch {
             repository.banMember(roomId, userId, targetUserId)
+                .onSuccess {
+                    _actionState.value = RoomActionState()
+                    onSuccess()
+                }
                 .onFailure { error ->
                     _actionState.value = RoomActionState(errorMessage = error.message)
                 }
         }
     }
 
-    fun banEmail(roomId: Long, email: String) {
+    fun banEmail(
+        roomId: Long,
+        email: String,
+        onSuccess: () -> Unit = {}
+    ) {
         val userId = loggedUserId ?: return
 
         viewModelScope.launch {
             repository.banEmail(roomId, userId, email)
+                .onSuccess {
+                    _actionState.value = RoomActionState()
+                    onSuccess()
+                }
                 .onFailure { error ->
                     _actionState.value = RoomActionState(errorMessage = error.message)
                 }

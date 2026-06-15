@@ -16,6 +16,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -26,6 +28,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.Modifier
@@ -33,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import com.example.bookclub.data.local.entity.RoomBookEntity
 import com.example.bookclub.data.local.model.MemberWithUser
 import com.example.bookclub.viewmodel.RoomViewModel
+import kotlinx.coroutines.launch
 
 private const val ROOM_TITLE_MAX_LENGTH = 60
 private const val ROOM_DESCRIPTION_MAX_LENGTH = 300
@@ -49,6 +53,15 @@ fun RoomAdminScreen(
     val books by viewModel.observeBooks(roomId).collectAsState(initial = emptyList())
     val members by viewModel.observeMembers(roomId).collectAsState(initial = emptyList())
     val actionState by viewModel.actionState.collectAsState()
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
+    fun showSuccess(message: String) {
+        scope.launch {
+            snackbarHostState.showSnackbar(message)
+        }
+    }
 
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
@@ -72,6 +85,9 @@ fun RoomAdminScreen(
     }
 
     Scaffold(
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState)
+        },
         topBar = {
             TopAppBar(
                 title = { Text("Admin panel") },
@@ -173,7 +189,10 @@ fun RoomAdminScreen(
                             title = title,
                             description = description,
                             isPrivate = isPrivate,
-                            accessCode = accessCode
+                            accessCode = accessCode,
+                            onSuccess = {
+                                showSuccess("Room settings saved.")
+                            }
                         )
                     },
                     modifier = Modifier.fillMaxWidth()
@@ -201,7 +220,13 @@ fun RoomAdminScreen(
                         bookYear = book.firstPublishYear?.toString() ?: ""
                     },
                     onDelete = {
-                        viewModel.deleteBook(roomId, book.id)
+                        viewModel.deleteBook(
+                            roomId = roomId,
+                            bookId = book.id,
+                            onSuccess = {
+                                showSuccess("Book deleted.")
+                            }
+                        )
                     }
                 )
             }
@@ -252,15 +277,30 @@ fun RoomAdminScreen(
                         )
 
                         if (editingBookId == null) {
-                            viewModel.addBook(roomId, book)
+                            viewModel.addBook(
+                                roomId = roomId,
+                                book = book,
+                                onSuccess = {
+                                    editingBookId = null
+                                    bookTitle = ""
+                                    bookAuthor = ""
+                                    bookYear = ""
+                                    showSuccess("Book added.")
+                                }
+                            )
                         } else {
-                            viewModel.updateBook(roomId, book)
+                            viewModel.updateBook(
+                                roomId = roomId,
+                                book = book,
+                                onSuccess = {
+                                    editingBookId = null
+                                    bookTitle = ""
+                                    bookAuthor = ""
+                                    bookYear = ""
+                                    showSuccess("Book updated.")
+                                }
+                            )
                         }
-
-                        editingBookId = null
-                        bookTitle = ""
-                        bookAuthor = ""
-                        bookYear = ""
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -282,16 +322,42 @@ fun RoomAdminScreen(
                     member = member,
                     currentUserId = viewModel.currentUserId,
                     onToggleAdmin = {
-                        viewModel.setAdmin(roomId, member.userId, !member.isAdmin)
+                        viewModel.setAdmin(
+                            roomId = roomId,
+                            targetUserId = member.userId,
+                            isAdmin = !member.isAdmin,
+                            onSuccess = {
+                                showSuccess("Admin rights updated.")
+                            }
+                        )
                     },
                     onToggleMessaging = {
-                        viewModel.setCanMessage(roomId, member.userId, !member.canMessage)
+                        viewModel.setCanMessage(
+                            roomId = roomId,
+                            targetUserId = member.userId,
+                            canMessage = !member.canMessage,
+                            onSuccess = {
+                                showSuccess("Messaging rights updated.")
+                            }
+                        )
                     },
                     onRemove = {
-                        viewModel.removeMember(roomId, member.userId)
+                        viewModel.removeMember(
+                            roomId = roomId,
+                            targetUserId = member.userId,
+                            onSuccess = {
+                                showSuccess("Member removed.")
+                            }
+                        )
                     },
                     onBan = {
-                        viewModel.banMember(roomId, member.userId)
+                        viewModel.banMember(
+                            roomId = roomId,
+                            targetUserId = member.userId,
+                            onSuccess = {
+                                showSuccess("Member banned.")
+                            }
+                        )
                     }
                 )
             }
@@ -309,8 +375,14 @@ fun RoomAdminScreen(
             item {
                 Button(
                     onClick = {
-                        viewModel.banEmail(roomId, banEmail)
-                        banEmail = ""
+                        viewModel.banEmail(
+                            roomId = roomId,
+                            email = banEmail,
+                            onSuccess = {
+                                banEmail = ""
+                                showSuccess("Email banned.")
+                            }
+                        )
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
