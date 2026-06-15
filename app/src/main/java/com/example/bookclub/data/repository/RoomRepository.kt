@@ -1,22 +1,29 @@
 package com.example.bookclub.data.repository
 
+import android.util.Log
 import com.example.bookclub.data.local.dao.MembershipDao
 import com.example.bookclub.data.local.dao.MessageDao
+import com.example.bookclub.data.local.dao.RoomBanDao
 import com.example.bookclub.data.local.dao.RoomBookDao
 import com.example.bookclub.data.local.dao.RoomDao
+import com.example.bookclub.data.local.dao.UserDao
 import com.example.bookclub.data.local.entity.BookClubRoomEntity
 import com.example.bookclub.data.local.entity.MembershipEntity
 import com.example.bookclub.data.local.entity.MessageEntity
+import com.example.bookclub.data.local.entity.RoomBanEntity
 import com.example.bookclub.data.local.entity.RoomBookEntity
+import com.example.bookclub.data.local.model.MemberWithUser
 import com.example.bookclub.data.local.model.MessageWithUser
 import kotlinx.coroutines.flow.Flow
-import android.util.Log
+import kotlinx.coroutines.flow.map
 
 class RoomRepository(
     private val roomDao: RoomDao,
     private val roomBookDao: RoomBookDao,
     private val membershipDao: MembershipDao,
-    private val messageDao: MessageDao
+    private val messageDao: MessageDao,
+    private val userDao: UserDao,
+    private val roomBanDao: RoomBanDao
 ) {
 
     fun observeVisibleRooms(userId: Long): Flow<List<BookClubRoomEntity>> {
@@ -33,6 +40,14 @@ class RoomRepository(
 
     fun observeMessages(roomId: Long): Flow<List<MessageWithUser>> {
         return messageDao.observeMessagesForRoom(roomId)
+    }
+
+    fun observeMembers(roomId: Long): Flow<List<MemberWithUser>> {
+        return membershipDao.observeMembersForRoom(roomId)
+    }
+
+    fun observeIsAdmin(roomId: Long, userId: Long): Flow<Boolean> {
+        return membershipDao.observeAdminCount(roomId, userId).map { it > 0 }
     }
 
     suspend fun createRoom(
@@ -79,7 +94,9 @@ class RoomRepository(
             membershipDao.insertMembership(
                 MembershipEntity(
                     userId = ownerUserId,
-                    roomId = roomId
+                    roomId = roomId,
+                    isAdmin = true,
+                    canMessage = true
                 )
             )
 
@@ -104,6 +121,19 @@ class RoomRepository(
         val room = roomDao.findRoomById(roomId)
             ?: return Result.failure(Exception("No room found with this ID."))
 
+        val user = userDao.findById(userId)
+            ?: return Result.failure(Exception("User not found."))
+
+        val isBanned = roomBanDao.countBanForUserOrEmail(
+            roomId = roomId,
+            userId = userId,
+            email = user.email
+        ) > 0
+
+        if (isBanned) {
+            return Result.failure(Exception("You are banned from this room."))
+        }
+
         if (room.isPrivate && room.accessCode != accessCode?.trim()) {
             return Result.failure(Exception("This private room needs the correct access code."))
         }
@@ -111,7 +141,9 @@ class RoomRepository(
         membershipDao.insertMembership(
             MembershipEntity(
                 userId = userId,
-                roomId = room.id
+                roomId = room.id,
+                isAdmin = false,
+                canMessage = true
             )
         )
 
@@ -129,6 +161,26 @@ class RoomRepository(
             return Result.failure(Exception("Message cannot be empty."))
         }
 
+        val user = userDao.findById(userId)
+            ?: return Result.failure(Exception("User not found."))
+
+        val isBanned = roomBanDao.countBanForUserOrEmail(
+            roomId = roomId,
+            userId = userId,
+            email = user.email
+        ) > 0
+
+        if (isBanned) {
+            return Result.failure(Exception("You are banned from this room."))
+        }
+
+        val membership = membershipDao.findMembership(roomId, userId)
+            ?: return Result.failure(Exception("You are not a member of this room."))
+
+        if (!membership.canMessage) {
+            return Result.failure(Exception("You are not allowed to send messages in this room."))
+        }
+
         messageDao.insertMessage(
             MessageEntity(
                 roomId = roomId,
@@ -138,5 +190,233 @@ class RoomRepository(
         )
 
         return Result.success(Unit)
+    }
+
+    suspend fun updateRoomSettings(
+        roomId: Long,
+        currentUserId: Long,
+        title: String,
+        description: String,
+        isPrivate: Boolean,
+        accessCode: String?
+    ): Result<Unit> {
+        if (!isAdmin(roomId, currentUserId)) {
+            return Result.failure(Exception("Only admins can edit this room."))
+        }
+
+        if (title.trim().length < 3) {
+            return Result.failure(Exception("Room title must have at least 3 characters."))
+        }
+
+        if (isPrivate && accessCode.isNullOrBlank()) {
+            return Result.failure(Exception("Private rooms need an access code."))
+        }
+
+        roomDao.updateRoom(
+            roomId = roomId,
+            title = title.trim(),
+            description = description.trim(),
+            isPrivate = isPrivate,
+            accessCode = if (isPrivate) accessCode?.trim() else null
+        )
+
+        return Result.success(Unit)
+    }
+
+    suspend fun deleteRoom(
+        roomId: Long,
+        currentUserId: Long
+    ): Result<Unit> {
+        if (!isAdmin(roomId, currentUserId)) {
+            return Result.failure(Exception("Only admins can delete this room."))
+        }
+
+        roomDao.deleteRoom(roomId)
+        return Result.success(Unit)
+    }
+
+    suspend fun addBook(
+        roomId: Long,
+        currentUserId: Long,
+        book: RoomBookEntity
+    ): Result<Unit> {
+        if (!isAdmin(roomId, currentUserId)) {
+            return Result.failure(Exception("Only admins can add books."))
+        }
+
+        if (book.title.isBlank() || book.author.isBlank()) {
+            return Result.failure(Exception("Book title and author are required."))
+        }
+
+        roomBookDao.insertBook(book.copy(id = 0, roomId = roomId))
+        return Result.success(Unit)
+    }
+
+    suspend fun updateBook(
+        roomId: Long,
+        currentUserId: Long,
+        book: RoomBookEntity
+    ): Result<Unit> {
+        if (!isAdmin(roomId, currentUserId)) {
+            return Result.failure(Exception("Only admins can edit books."))
+        }
+
+        if (book.title.isBlank() || book.author.isBlank()) {
+            return Result.failure(Exception("Book title and author are required."))
+        }
+
+        roomBookDao.updateBook(
+            bookId = book.id,
+            title = book.title.trim(),
+            author = book.author.trim(),
+            firstPublishYear = book.firstPublishYear,
+            coverUrl = book.coverUrl,
+            openLibraryKey = book.openLibraryKey,
+            description = book.description
+        )
+
+        return Result.success(Unit)
+    }
+
+    suspend fun deleteBook(
+        roomId: Long,
+        currentUserId: Long,
+        bookId: Long
+    ): Result<Unit> {
+        if (!isAdmin(roomId, currentUserId)) {
+            return Result.failure(Exception("Only admins can delete books."))
+        }
+
+        roomBookDao.deleteBook(bookId)
+        return Result.success(Unit)
+    }
+
+    suspend fun setAdmin(
+        roomId: Long,
+        currentUserId: Long,
+        targetUserId: Long,
+        isAdmin: Boolean
+    ): Result<Unit> {
+        if (!isAdmin(roomId, currentUserId)) {
+            return Result.failure(Exception("Only admins can change admin rights."))
+        }
+
+        val targetMembership = membershipDao.findMembership(roomId, targetUserId)
+            ?: return Result.failure(Exception("Target user is not a room member."))
+
+        if (!isAdmin && targetMembership.isAdmin && membershipDao.countAdmins(roomId) <= 1) {
+            return Result.failure(Exception("A room must have at least one admin."))
+        }
+
+        membershipDao.updateAdmin(roomId, targetUserId, isAdmin)
+        return Result.success(Unit)
+    }
+
+    suspend fun setCanMessage(
+        roomId: Long,
+        currentUserId: Long,
+        targetUserId: Long,
+        canMessage: Boolean
+    ): Result<Unit> {
+        if (!isAdmin(roomId, currentUserId)) {
+            return Result.failure(Exception("Only admins can change messaging rights."))
+        }
+
+        membershipDao.updateCanMessage(roomId, targetUserId, canMessage)
+        return Result.success(Unit)
+    }
+
+    suspend fun removeMember(
+        roomId: Long,
+        currentUserId: Long,
+        targetUserId: Long
+    ): Result<Unit> {
+        if (!isAdmin(roomId, currentUserId)) {
+            return Result.failure(Exception("Only admins can remove members."))
+        }
+
+        val targetMembership = membershipDao.findMembership(roomId, targetUserId)
+            ?: return Result.failure(Exception("Target user is not a room member."))
+
+        if (targetMembership.isAdmin && membershipDao.countAdmins(roomId) <= 1) {
+            return Result.failure(Exception("Cannot remove the last admin."))
+        }
+
+        membershipDao.removeMembership(roomId, targetUserId)
+        return Result.success(Unit)
+    }
+
+    suspend fun banMember(
+        roomId: Long,
+        currentUserId: Long,
+        targetUserId: Long
+    ): Result<Unit> {
+        if (!isAdmin(roomId, currentUserId)) {
+            return Result.failure(Exception("Only admins can ban members."))
+        }
+
+        if (currentUserId == targetUserId) {
+            return Result.failure(Exception("You cannot ban yourself."))
+        }
+
+        val targetUser = userDao.findById(targetUserId)
+            ?: return Result.failure(Exception("Target user not found."))
+
+        val targetMembership = membershipDao.findMembership(roomId, targetUserId)
+
+        if (targetMembership?.isAdmin == true && membershipDao.countAdmins(roomId) <= 1) {
+            return Result.failure(Exception("Cannot ban the last admin."))
+        }
+
+        roomBanDao.insertBan(
+            RoomBanEntity(
+                roomId = roomId,
+                bannedUserId = targetUserId,
+                bannedEmail = targetUser.email,
+                bannedByUserId = currentUserId,
+                reason = null
+            )
+        )
+
+        membershipDao.removeMembership(roomId, targetUserId)
+        return Result.success(Unit)
+    }
+
+    suspend fun banEmail(
+        roomId: Long,
+        currentUserId: Long,
+        email: String
+    ): Result<Unit> {
+        if (!isAdmin(roomId, currentUserId)) {
+            return Result.failure(Exception("Only admins can ban users."))
+        }
+
+        val cleanEmail = email.trim()
+
+        if (!cleanEmail.contains("@")) {
+            return Result.failure(Exception("Enter a valid email address."))
+        }
+
+        val existingUser = userDao.findByEmail(cleanEmail)
+
+        roomBanDao.insertBan(
+            RoomBanEntity(
+                roomId = roomId,
+                bannedUserId = existingUser?.id,
+                bannedEmail = cleanEmail,
+                bannedByUserId = currentUserId,
+                reason = null
+            )
+        )
+
+        existingUser?.let {
+            membershipDao.removeMembership(roomId, it.id)
+        }
+
+        return Result.success(Unit)
+    }
+
+    private suspend fun isAdmin(roomId: Long, userId: Long): Boolean {
+        return membershipDao.isAdminCount(roomId, userId) > 0
     }
 }

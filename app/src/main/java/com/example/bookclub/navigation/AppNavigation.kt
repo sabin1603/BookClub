@@ -15,6 +15,7 @@ import com.example.bookclub.ui.screens.CreateRoomScreen
 import com.example.bookclub.ui.screens.HomeScreen
 import com.example.bookclub.ui.screens.LoginScreen
 import com.example.bookclub.ui.screens.RegisterScreen
+import com.example.bookclub.ui.screens.RoomAdminScreen
 import com.example.bookclub.ui.screens.RoomDetailsScreen
 
 @Composable
@@ -136,6 +137,34 @@ fun AppNavigation() {
                 roomId = roomId,
                 onBack = {
                     navController.popBackStack()
+                },
+                onAdminClick = {
+                    navController.navigate(Routes.roomAdmin(roomId))
+                }
+            )
+        }
+
+        composable(
+            route = Routes.RoomAdmin,
+            arguments = listOf(
+                navArgument("roomId") {
+                    type = NavType.LongType
+                }
+            )
+        ) { backStackEntry ->
+            val roomId = backStackEntry.arguments?.getLong("roomId") ?: return@composable
+
+            RoomAdminScreen(
+                roomId = roomId,
+                onBack = {
+                    navController.popBackStack()
+                },
+                onRoomDeleted = {
+                    navController.navigate(Routes.Home) {
+                        popUpTo(Routes.Home) {
+                            inclusive = true
+                        }
+                    }
                 }
             )
         }

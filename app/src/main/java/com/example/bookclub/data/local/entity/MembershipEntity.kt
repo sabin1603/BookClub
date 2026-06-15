@@ -29,5 +29,7 @@ import androidx.room.Index
 data class MembershipEntity(
     val userId: Long,
     val roomId: Long,
-    val joinedAt: Long = System.currentTimeMillis()
+    val joinedAt: Long = System.currentTimeMillis(),
+    val isAdmin: Boolean = false,
+    val canMessage: Boolean = true
 )

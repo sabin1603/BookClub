@@ -21,4 +21,27 @@ interface RoomBookDao {
         ORDER BY displayOrder ASC, id ASC
     """)
     fun observeBooksForRoom(roomId: Long): Flow<List<RoomBookEntity>>
+
+    @Query("""
+        UPDATE room_books
+        SET title = :title,
+            author = :author,
+            firstPublishYear = :firstPublishYear,
+            coverUrl = :coverUrl,
+            openLibraryKey = :openLibraryKey,
+            description = :description
+        WHERE id = :bookId
+    """)
+    suspend fun updateBook(
+        bookId: Long,
+        title: String,
+        author: String,
+        firstPublishYear: Int?,
+        coverUrl: String?,
+        openLibraryKey: String?,
+        description: String?
+    )
+
+    @Query("DELETE FROM room_books WHERE id = :bookId")
+    suspend fun deleteBook(bookId: Long)
 }

@@ -15,6 +15,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -39,11 +40,14 @@ import com.example.bookclub.viewmodel.RoomViewModel
 fun RoomDetailsScreen(
     roomId: Long,
     onBack: () -> Unit,
+    onAdminClick: () -> Unit,
     viewModel: RoomViewModel = viewModel()
 ) {
     val room by viewModel.observeRoom(roomId).collectAsState(initial = null)
     val books by viewModel.observeBooks(roomId).collectAsState(initial = emptyList())
     val messages by viewModel.observeMessages(roomId).collectAsState(initial = emptyList())
+    val isAdmin by viewModel.observeIsCurrentUserAdmin(roomId).collectAsState(initial = false)
+    val actionState by viewModel.actionState.collectAsState()
 
     var messageText by remember { mutableStateOf("") }
 
@@ -52,8 +56,15 @@ fun RoomDetailsScreen(
             TopAppBar(
                 title = { Text(room?.title ?: "Room") },
                 navigationIcon = {
-                    TextButton(onClick = onBack) {
-                        Text("Back")
+                    IconButton(onClick = onBack) {
+                        Text("←", style = MaterialTheme.typography.titleLarge)
+                    }
+                },
+                actions = {
+                    if (isAdmin) {
+                        TextButton(onClick = onAdminClick) {
+                            Text("Admin")
+                        }
                     }
                 }
             )
@@ -101,16 +112,10 @@ fun RoomDetailsScreen(
                         )
                     }
 
-                    Text(
-                        text = "Room ID: #${currentRoom.id}",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+                    Text("Room ID: #${currentRoom.id}")
 
                     if (currentRoom.description.isNotBlank()) {
-                        Text(
-                            text = currentRoom.description,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+                        Text(currentRoom.description)
                     }
 
                     HorizontalDivider()
@@ -135,6 +140,14 @@ fun RoomDetailsScreen(
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
+
+            actionState.errorMessage?.let {
+                Text(
+                    text = it,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+            }
 
             if (messages.isEmpty()) {
                 Text(
@@ -208,11 +221,7 @@ private fun MessageCard(
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = if (isMine) {
-            Arrangement.End
-        } else {
-            Arrangement.Start
-        }
+        horizontalArrangement = if (isMine) Arrangement.End else Arrangement.Start
     ) {
         Card(
             modifier = Modifier.fillMaxWidth(0.78f),
@@ -229,12 +238,7 @@ private fun MessageCard(
             ) {
                 Text(
                     text = if (isMine) "You" else message.username,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = if (isMine) {
-                        MaterialTheme.colorScheme.onPrimaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    }
+                    style = MaterialTheme.typography.labelLarge
                 )
 
                 Text(

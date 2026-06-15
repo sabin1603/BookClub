@@ -27,4 +27,23 @@ interface RoomDao {
 
     @Query("SELECT * FROM rooms WHERE id = :roomId LIMIT 1")
     suspend fun findRoomById(roomId: Long): BookClubRoomEntity?
+
+    @Query("""
+        UPDATE rooms
+        SET title = :title,
+            description = :description,
+            isPrivate = :isPrivate,
+            accessCode = :accessCode
+        WHERE id = :roomId
+    """)
+    suspend fun updateRoom(
+        roomId: Long,
+        title: String,
+        description: String,
+        isPrivate: Boolean,
+        accessCode: String?
+    )
+
+    @Query("DELETE FROM rooms WHERE id = :roomId")
+    suspend fun deleteRoom(roomId: Long)
 }

@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.bookclub.BookClubApplication
 import com.example.bookclub.data.local.entity.BookClubRoomEntity
 import com.example.bookclub.data.local.entity.RoomBookEntity
+import com.example.bookclub.data.local.model.MemberWithUser
 import com.example.bookclub.data.local.model.MessageWithUser
 import com.example.bookclub.data.repository.RoomRepository
 import kotlinx.coroutines.flow.Flow
@@ -27,7 +28,9 @@ class RoomViewModel(application: Application) : AndroidViewModel(application) {
         roomDao = app.database.roomDao(),
         roomBookDao = app.database.roomBookDao(),
         membershipDao = app.database.membershipDao(),
-        messageDao = app.database.messageDao()
+        messageDao = app.database.messageDao(),
+        userDao = app.database.userDao(),
+        roomBanDao = app.database.roomBanDao()
     )
 
     private val _actionState = MutableStateFlow(RoomActionState())
@@ -59,6 +62,15 @@ class RoomViewModel(application: Application) : AndroidViewModel(application) {
         return repository.observeMessages(roomId)
     }
 
+    fun observeMembers(roomId: Long): Flow<List<MemberWithUser>> {
+        return repository.observeMembers(roomId)
+    }
+
+    fun observeIsCurrentUserAdmin(roomId: Long): Flow<Boolean> {
+        val userId = loggedUserId ?: return flowOf(false)
+        return repository.observeIsAdmin(roomId, userId)
+    }
+
     fun createRoom(
         title: String,
         description: String,
@@ -67,8 +79,7 @@ class RoomViewModel(application: Application) : AndroidViewModel(application) {
         books: List<RoomBookEntity>,
         onSuccess: () -> Unit
     ) {
-        val userId = loggedUserId
-        if (userId == null) {
+        val userId = loggedUserId ?: run {
             _actionState.value = RoomActionState(errorMessage = "You must be logged in.")
             return
         }
@@ -76,7 +87,7 @@ class RoomViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             _actionState.value = RoomActionState(isLoading = true)
 
-            val result = repository.createRoom(
+            repository.createRoom(
                 title = title,
                 description = description,
                 isPrivate = isPrivate,
@@ -84,8 +95,6 @@ class RoomViewModel(application: Application) : AndroidViewModel(application) {
                 ownerUserId = userId,
                 books = books
             )
-
-            result
                 .onSuccess {
                     _actionState.value = RoomActionState()
                     onSuccess()
@@ -96,12 +105,8 @@ class RoomViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun joinRoomById(
-        roomIdText: String,
-        accessCode: String?
-    ) {
-        val userId = loggedUserId
-        if (userId == null) {
+    fun joinRoomById(roomIdText: String, accessCode: String?) {
+        val userId = loggedUserId ?: run {
             _actionState.value = RoomActionState(errorMessage = "You must be logged in.")
             return
         }
@@ -109,13 +114,7 @@ class RoomViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             _actionState.value = RoomActionState(isLoading = true)
 
-            val result = repository.joinRoomById(
-                roomIdText = roomIdText,
-                accessCode = accessCode,
-                userId = userId
-            )
-
-            result
+            repository.joinRoomById(roomIdText, accessCode, userId)
                 .onSuccess {
                     _actionState.value = RoomActionState()
                 }
@@ -125,26 +124,136 @@ class RoomViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun sendMessage(
-        roomId: Long,
-        content: String
-    ) {
-        val userId = loggedUserId
-        if (userId == null) {
+    fun sendMessage(roomId: Long, content: String) {
+        val userId = loggedUserId ?: run {
             _actionState.value = RoomActionState(errorMessage = "You must be logged in.")
             return
         }
 
         viewModelScope.launch {
-            val result = repository.sendMessage(
-                roomId = roomId,
-                userId = userId,
-                content = content
-            )
+            repository.sendMessage(roomId, userId, content)
+                .onFailure { error ->
+                    _actionState.value = RoomActionState(errorMessage = error.message)
+                }
+        }
+    }
 
-            result.onFailure { error ->
-                _actionState.value = RoomActionState(errorMessage = error.message)
-            }
+    fun updateRoomSettings(
+        roomId: Long,
+        title: String,
+        description: String,
+        isPrivate: Boolean,
+        accessCode: String?
+    ) {
+        val userId = loggedUserId ?: return
+
+        viewModelScope.launch {
+            repository.updateRoomSettings(roomId, userId, title, description, isPrivate, accessCode)
+                .onFailure { error ->
+                    _actionState.value = RoomActionState(errorMessage = error.message)
+                }
+        }
+    }
+
+    fun deleteRoom(roomId: Long, onSuccess: () -> Unit) {
+        val userId = loggedUserId ?: return
+
+        viewModelScope.launch {
+            repository.deleteRoom(roomId, userId)
+                .onSuccess {
+                    onSuccess()
+                }
+                .onFailure { error ->
+                    _actionState.value = RoomActionState(errorMessage = error.message)
+                }
+        }
+    }
+
+    fun addBook(roomId: Long, book: RoomBookEntity) {
+        val userId = loggedUserId ?: return
+
+        viewModelScope.launch {
+            repository.addBook(roomId, userId, book)
+                .onFailure { error ->
+                    _actionState.value = RoomActionState(errorMessage = error.message)
+                }
+        }
+    }
+
+    fun updateBook(roomId: Long, book: RoomBookEntity) {
+        val userId = loggedUserId ?: return
+
+        viewModelScope.launch {
+            repository.updateBook(roomId, userId, book)
+                .onFailure { error ->
+                    _actionState.value = RoomActionState(errorMessage = error.message)
+                }
+        }
+    }
+
+    fun deleteBook(roomId: Long, bookId: Long) {
+        val userId = loggedUserId ?: return
+
+        viewModelScope.launch {
+            repository.deleteBook(roomId, userId, bookId)
+                .onFailure { error ->
+                    _actionState.value = RoomActionState(errorMessage = error.message)
+                }
+        }
+    }
+
+    fun setAdmin(roomId: Long, targetUserId: Long, isAdmin: Boolean) {
+        val userId = loggedUserId ?: return
+
+        viewModelScope.launch {
+            repository.setAdmin(roomId, userId, targetUserId, isAdmin)
+                .onFailure { error ->
+                    _actionState.value = RoomActionState(errorMessage = error.message)
+                }
+        }
+    }
+
+    fun setCanMessage(roomId: Long, targetUserId: Long, canMessage: Boolean) {
+        val userId = loggedUserId ?: return
+
+        viewModelScope.launch {
+            repository.setCanMessage(roomId, userId, targetUserId, canMessage)
+                .onFailure { error ->
+                    _actionState.value = RoomActionState(errorMessage = error.message)
+                }
+        }
+    }
+
+    fun removeMember(roomId: Long, targetUserId: Long) {
+        val userId = loggedUserId ?: return
+
+        viewModelScope.launch {
+            repository.removeMember(roomId, userId, targetUserId)
+                .onFailure { error ->
+                    _actionState.value = RoomActionState(errorMessage = error.message)
+                }
+        }
+    }
+
+    fun banMember(roomId: Long, targetUserId: Long) {
+        val userId = loggedUserId ?: return
+
+        viewModelScope.launch {
+            repository.banMember(roomId, userId, targetUserId)
+                .onFailure { error ->
+                    _actionState.value = RoomActionState(errorMessage = error.message)
+                }
+        }
+    }
+
+    fun banEmail(roomId: Long, email: String) {
+        val userId = loggedUserId ?: return
+
+        viewModelScope.launch {
+            repository.banEmail(roomId, userId, email)
+                .onFailure { error ->
+                    _actionState.value = RoomActionState(errorMessage = error.message)
+                }
         }
     }
 
