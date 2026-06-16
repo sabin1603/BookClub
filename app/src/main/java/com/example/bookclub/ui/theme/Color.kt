@@ -33,3 +33,4 @@ val BookCream = BookBackground
 val BookGold = Color(0xFFE9C176)
 val BookGreen = Color(0xFF2E7D32)
 val BookRed = BookError
+val BookSurfaceContainerLowest = Color(0xFFFFFFFF)

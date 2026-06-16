@@ -1,26 +1,45 @@
 package com.example.bookclub.ui.screens
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -30,17 +49,39 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
+import com.example.bookclub.R
 import com.example.bookclub.data.local.entity.CachedBookEntity
 import com.example.bookclub.data.local.entity.RoomBookEntity
+import com.example.bookclub.ui.theme.BookBackground
+import com.example.bookclub.ui.theme.BookError
+import com.example.bookclub.ui.theme.BookOnPrimary
+import com.example.bookclub.ui.theme.BookOnSurface
+import com.example.bookclub.ui.theme.BookOnSurfaceVariant
+import com.example.bookclub.ui.theme.BookOutline
+import com.example.bookclub.ui.theme.BookOutlineVariant
+import com.example.bookclub.ui.theme.BookPrimary
+import com.example.bookclub.ui.theme.BookPrimaryContainer
+import com.example.bookclub.ui.theme.BookSurface
+import com.example.bookclub.ui.theme.BookSurfaceContainerHigh
+import com.example.bookclub.ui.theme.BookSurfaceContainerLow
+import com.example.bookclub.ui.theme.BookSurfaceContainerLowest
 import com.example.bookclub.viewmodel.BookViewModel
 import com.example.bookclub.viewmodel.RoomViewModel
 
 private const val ROOM_TITLE_MAX_LENGTH = 60
 private const val ROOM_DESCRIPTION_MAX_LENGTH = 300
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateRoomScreen(
     bookId: Long?,
@@ -136,212 +177,613 @@ fun CreateRoomScreen(
     }
 
     Scaffold(
+        containerColor = BookBackground,
+        contentWindowInsets = WindowInsets(0.dp),
         topBar = {
-            TopAppBar(
-                title = { Text("Create room") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Text("←", style = MaterialTheme.typography.titleLarge)
-                    }
+            CreateRoomTopBar(onBack = onBack)
+        },
+        bottomBar = {
+            SaveRoomBottomBar(
+                isLoading = actionState.isLoading,
+                onSave = {
+                    roomViewModel.createRoom(
+                        title = title,
+                        description = description,
+                        isPrivate = isPrivate,
+                        accessCode = accessCode,
+                        books = selectedBooks.toList(),
+                        onSuccess = onRoomCreated
+                    )
                 }
             )
         }
     ) { padding ->
         LazyColumn(
             modifier = Modifier
+                .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(horizontal = 32.dp),
+            contentPadding = PaddingValues(top = 28.dp, bottom = 28.dp),
+            verticalArrangement = Arrangement.spacedBy(28.dp)
         ) {
             item {
-                FilledTonalButton(
-                    onClick = onSearchBook,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Search and add book online")
-                }
+                SearchBookButton(onClick = onSearchBook)
             }
 
             item {
-                OutlinedTextField(
+                LabeledCounterTextField(
+                    label = "Room Title",
                     value = title,
                     onValueChange = {
                         if (it.length <= ROOM_TITLE_MAX_LENGTH) {
                             title = it
                         }
                     },
-                    label = { Text("Room title") },
-                    supportingText = {
-                        Text("${title.length}/$ROOM_TITLE_MAX_LENGTH")
-                    },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    placeholder = "E.g., Sunday Sci-Fi Readers",
+                    counter = "${title.length}/$ROOM_TITLE_MAX_LENGTH",
+                    singleLine = true
                 )
             }
 
             item {
-                Text(
-                    text = "Books in this room",
-                    style = MaterialTheme.typography.titleMedium
-                )
-            }
-
-            if (selectedBooks.isEmpty()) {
-                item {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
                     Text(
-                        text = "No books added yet. Add at least one book.",
-                        style = MaterialTheme.typography.bodyMedium
+                        text = "Books in this Room",
+                        color = BookPrimary,
+                        style = androidx.compose.material3.MaterialTheme.typography.labelLarge
                     )
-                }
-            } else {
-                items(selectedBooks) { book ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Column(
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Text(
-                                    text = book.title,
-                                    style = MaterialTheme.typography.titleMedium
-                                )
 
-                                Text(
-                                    text = "by ${book.author}",
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                            }
-
-                            TextButton(
-                                onClick = {
-                                    selectedBooks.remove(book)
-                                }
-                            ) {
-                                Text("Remove")
-                            }
-                        }
+                    if (selectedBooks.isEmpty()) {
+                        EmptyBooksBox()
                     }
                 }
             }
 
-            item {
-                OutlinedTextField(
-                    value = manualBookTitle,
-                    onValueChange = { manualBookTitle = it },
-                    label = { Text("Manual book title") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-
-            item {
-                OutlinedTextField(
-                    value = manualBookAuthor,
-                    onValueChange = { manualBookAuthor = it },
-                    label = { Text("Manual book author") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-
-            item {
-                FilledTonalButton(
-                    onClick = { addManualBook() },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Add manual book")
+            if (selectedBooks.isNotEmpty()) {
+                items(
+                    items = selectedBooks,
+                    key = { "${it.title}-${it.author}-${it.displayOrder}" }
+                ) { book ->
+                    AddedBookCard(
+                        book = book,
+                        onRemove = {
+                            selectedBooks.remove(book)
+                        }
+                    )
                 }
             }
 
             item {
-                OutlinedTextField(
+                ManualBookCard(
+                    manualBookTitle = manualBookTitle,
+                    onManualBookTitleChange = { manualBookTitle = it },
+                    manualBookAuthor = manualBookAuthor,
+                    onManualBookAuthorChange = { manualBookAuthor = it },
+                    onAddManualBook = { addManualBook() }
+                )
+            }
+
+            item {
+                LabeledCounterTextField(
+                    label = "Room Description",
                     value = description,
                     onValueChange = {
                         if (it.length <= ROOM_DESCRIPTION_MAX_LENGTH) {
                             description = it
                         }
                     },
-                    label = { Text("Room description") },
-                    supportingText = {
-                        Text("${description.length}/$ROOM_DESCRIPTION_MAX_LENGTH")
-                    },
-                    minLines = 3,
-                    maxLines = 5,
-                    modifier = Modifier.fillMaxWidth()
+                    placeholder = "What is this room about?",
+                    counter = "${description.length}/$ROOM_DESCRIPTION_MAX_LENGTH",
+                    singleLine = false,
+                    minLines = 5
                 )
             }
 
             item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column {
-                        Text(
-                            text = "Private room",
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Text(
-                            text = "Users need a code to join.",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-
-                    Switch(
-                        checked = isPrivate,
-                        onCheckedChange = { isPrivate = it }
-                    )
-                }
-            }
-
-            if (isPrivate) {
-                item {
-                    OutlinedTextField(
-                        value = accessCode,
-                        onValueChange = { accessCode = it },
-                        label = { Text("Access code") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
+                PrivacyCard(
+                    isPrivate = isPrivate,
+                    onPrivateChange = { isPrivate = it },
+                    accessCode = accessCode,
+                    onAccessCodeChange = { accessCode = it }
+                )
             }
 
             actionState.errorMessage?.let { error ->
                 item {
                     Text(
                         text = error,
-                        color = MaterialTheme.colorScheme.error
+                        color = androidx.compose.material3.MaterialTheme.colorScheme.error,
+                        style = androidx.compose.material3.MaterialTheme.typography.bodyMedium
                     )
                 }
             }
+        }
+    }
+}
 
-            item {
-                Button(
-                    onClick = {
-                        roomViewModel.createRoom(
-                            title = title,
-                            description = description,
-                            isPrivate = isPrivate,
-                            accessCode = accessCode,
-                            books = selectedBooks.toList(),
-                            onSuccess = onRoomCreated
-                        )
-                    },
-                    enabled = !actionState.isLoading,
-                    modifier = Modifier.fillMaxWidth()
+@Composable
+private fun CreateRoomTopBar(
+    onBack: () -> Unit
+) {
+    Surface(
+        color = BookSurface
+    ) {
+        Column {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .height(64.dp)
+                    .padding(horizontal = 20.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextButton(onClick = onBack) {
+                    Text(
+                        text = "Back",
+                        color = BookPrimary,
+                        style = androidx.compose.material3.MaterialTheme.typography.labelLarge
+                    )
+                }
+
+                Text(
+                    text = "Create New Room",
+                    color = BookPrimary,
+                    style = androidx.compose.material3.MaterialTheme.typography.headlineMedium,
+                    modifier = Modifier.weight(1f),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.width(64.dp))
+            }
+
+            HorizontalDivider(
+                color = BookOutlineVariant.copy(alpha = 0.65f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun SearchBookButton(
+    onClick: () -> Unit
+) {
+    OutlinedButton(
+        onClick = onClick,
+        shape = RoundedCornerShape(20.dp),
+        border = BorderStroke(
+            width = 1.dp,
+            color = BookOutlineVariant
+        ),
+        colors = ButtonDefaults.outlinedButtonColors(
+            containerColor = BookSurfaceContainerLow,
+            contentColor = BookPrimary
+        ),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(76.dp)
+            .border(
+                width = 1.dp,
+                color = BookOutlineVariant.copy(alpha = 0.75f),
+                shape = RoundedCornerShape(20.dp)
+            )
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_nav_search),
+                contentDescription = null,
+                tint = BookPrimary,
+                modifier = Modifier.size(28.dp)
+            )
+
+            Text(
+                text = "Search and add book",
+                color = BookPrimary,
+                style = androidx.compose.material3.MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+    }
+}
+
+@Composable
+private fun LabeledCounterTextField(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    counter: String,
+    singleLine: Boolean,
+    minLines: Int = 1
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Bottom
+        ) {
+            Text(
+                text = label,
+                color = BookOnSurfaceVariant,
+                style = androidx.compose.material3.MaterialTheme.typography.labelLarge
+            )
+
+            Text(
+                text = counter,
+                color = BookOutline,
+                style = androidx.compose.material3.MaterialTheme.typography.labelLarge
+            )
+        }
+
+        TextField(
+            value = value,
+            onValueChange = onValueChange,
+            placeholder = {
+                Text(
+                    text = placeholder,
+                    color = Color(0xFF747B8B),
+                    style = androidx.compose.material3.MaterialTheme.typography.bodyLarge
+                )
+            },
+            singleLine = singleLine,
+            minLines = minLines,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+            shape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp),
+            colors = TextFieldDefaults.colors(
+                focusedTextColor = BookOnSurface,
+                unfocusedTextColor = BookOnSurface,
+                focusedContainerColor = BookSurfaceContainerLow,
+                unfocusedContainerColor = BookSurfaceContainerLow,
+                disabledContainerColor = BookSurfaceContainerLow,
+                focusedIndicatorColor = BookPrimary,
+                unfocusedIndicatorColor = BookOutline,
+                cursorColor = BookPrimary,
+                focusedLabelColor = BookPrimary,
+                unfocusedLabelColor = BookOnSurfaceVariant
+            ),
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+@Composable
+private fun EmptyBooksBox() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(
+                width = 1.dp,
+                color = BookOutlineVariant,
+                shape = RoundedCornerShape(18.dp)
+            )
+            .background(
+                color = BookSurface.copy(alpha = 0.6f),
+                shape = RoundedCornerShape(18.dp)
+            )
+            .padding(18.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = "No books added yet.",
+            color = BookOnSurfaceVariant,
+            style = androidx.compose.material3.MaterialTheme.typography.bodyMedium
+        )
+    }
+}
+
+@Composable
+private fun AddedBookCard(
+    book: RoomBookEntity,
+    onRemove: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = BookSurface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(
+                    width = 1.dp,
+                    color = BookOutlineVariant.copy(alpha = 0.65f),
+                    shape = RoundedCornerShape(18.dp)
+                )
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            BookCover(
+                coverUrl = book.coverUrl,
+                title = book.title
+            )
+
+            Spacer(modifier = Modifier.width(18.dp))
+
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = book.title,
+                    color = BookOnSurface,
+                    style = androidx.compose.material3.MaterialTheme.typography.headlineMedium,
+                    maxLines = 1
+                )
+
+                Text(
+                    text = book.author,
+                    color = BookOnSurfaceVariant,
+                    style = androidx.compose.material3.MaterialTheme.typography.bodyLarge,
+                    maxLines = 1
+                )
+            }
+
+            IconButton(onClick = onRemove) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_remove_book),
+                    contentDescription = "Remove book",
+                    tint = Color.Unspecified,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BookCover(
+    coverUrl: String?,
+    title: String
+) {
+    Box(
+        modifier = Modifier
+            .size(width = 58.dp, height = 82.dp)
+            .clip(RoundedCornerShape(4.dp))
+            .background(BookSurfaceContainerHigh),
+        contentAlignment = Alignment.Center
+    ) {
+        if (!coverUrl.isNullOrBlank()) {
+            AsyncImage(
+                model = coverUrl,
+                contentDescription = "$title cover",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            Text(
+                text = "Book",
+                color = BookOutline,
+                style = androidx.compose.material3.MaterialTheme.typography.labelMedium
+            )
+        }
+    }
+}
+
+@Composable
+private fun ManualBookCard(
+    manualBookTitle: String,
+    onManualBookTitleChange: (String) -> Unit,
+    manualBookAuthor: String,
+    onManualBookAuthorChange: (String) -> Unit,
+    onAddManualBook: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = BookSurfaceContainerLow
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(
+                    width = 1.dp,
+                    color = BookOutlineVariant,
+                    shape = RoundedCornerShape(18.dp)
+                )
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp)
+        ) {
+            Text(
+                text = "Add Book Manually",
+                color = BookPrimary,
+                style = androidx.compose.material3.MaterialTheme.typography.labelLarge
+            )
+
+            SimpleInput(
+                label = "Title",
+                value = manualBookTitle,
+                onValueChange = onManualBookTitleChange
+            )
+
+            SimpleInput(
+                label = "Author",
+                value = manualBookAuthor,
+                onValueChange = onManualBookAuthorChange
+            )
+
+            OutlinedButton(
+                onClick = onAddManualBook,
+                shape = CircleShape,
+                border = BorderStroke(1.5.dp, BookPrimary),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = BookPrimary
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+            ) {
+                Text(
+                    text = "Add Manually",
+                    style = androidx.compose.material3.MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SimpleInput(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = label,
+            color = BookOnSurfaceVariant,
+            style = androidx.compose.material3.MaterialTheme.typography.bodyMedium
+        )
+
+        TextField(
+            value = value,
+            onValueChange = onValueChange,
+            singleLine = true,
+            colors = TextFieldDefaults.colors(
+                focusedTextColor = BookOnSurface,
+                unfocusedTextColor = BookOnSurface,
+                focusedContainerColor = BookSurface,
+                unfocusedContainerColor = BookSurface,
+                disabledContainerColor = BookSurface,
+                focusedIndicatorColor = BookPrimary,
+                unfocusedIndicatorColor = BookOutline,
+                cursorColor = BookPrimary
+            ),
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+@Composable
+private fun PrivacyCard(
+    isPrivate: Boolean,
+    onPrivateChange: (Boolean) -> Unit,
+    accessCode: String,
+    onAccessCodeChange: (String) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = BookSurface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(
+                    width = 1.dp,
+                    color = BookOutlineVariant,
+                    shape = RoundedCornerShape(18.dp)
+                )
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f)
                 ) {
-                    if (actionState.isLoading) {
-                        CircularProgressIndicator()
-                    } else {
-                        Text("Save room")
-                    }
+                    Text(
+                        text = "Private Room",
+                        color = BookOnSurface,
+                        style = androidx.compose.material3.MaterialTheme.typography.headlineMedium
+                    )
+
+                    Text(
+                        text = "Require an access code to join.",
+                        color = BookOnSurfaceVariant,
+                        style = androidx.compose.material3.MaterialTheme.typography.bodyLarge
+                    )
+                }
+
+                Switch(
+                    checked = isPrivate,
+                    onCheckedChange = onPrivateChange,
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = BookOnPrimary,
+                        checkedTrackColor = BookPrimaryContainer,
+                        uncheckedThumbColor = BookOnPrimary,
+                        uncheckedTrackColor = BookSurfaceContainerHigh
+                    )
+                )
+            }
+
+            if (isPrivate) {
+                HorizontalDivider(
+                    color = BookOutlineVariant.copy(alpha = 0.55f)
+                )
+
+                SimpleInput(
+                    label = "Access Code",
+                    value = accessCode,
+                    onValueChange = onAccessCodeChange
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SaveRoomBottomBar(
+    isLoading: Boolean,
+    onSave: () -> Unit
+) {
+    Surface(
+        color = BookSurface,
+        shadowElevation = 6.dp
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = 32.dp, vertical = 16.dp)
+        ) {
+            Button(
+                onClick = onSave,
+                enabled = !isLoading,
+                shape = CircleShape,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = BookPrimaryContainer,
+                    contentColor = BookOnPrimary,
+                    disabledContainerColor = BookPrimaryContainer.copy(alpha = 0.55f),
+                    disabledContentColor = BookOnPrimary.copy(alpha = 0.75f)
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(58.dp)
+                    .shadow(
+                        elevation = 2.dp,
+                        shape = CircleShape
+                    )
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(22.dp),
+                        strokeWidth = 2.dp,
+                        color = BookOnPrimary
+                    )
+                } else {
+                    Text(
+                        text = "Save Room",
+                        style = androidx.compose.material3.MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
             }
         }

@@ -69,6 +69,9 @@ import com.example.bookclub.ui.theme.BookSurfaceContainerHigh
 import com.example.bookclub.ui.theme.BookSurfaceContainerLow
 import com.example.bookclub.viewmodel.RoomViewModel
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.width
 
 @Composable
 fun HomeScreen(
@@ -381,9 +384,10 @@ private fun ClubRoomCard(
             defaultElevation = 2.dp
         )
     ) {
-        Box(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .height(IntrinsicSize.Min)
                 .border(
                     width = 1.dp,
                     color = Color(0xFFE6E3D8),
@@ -393,15 +397,8 @@ private fun ClubRoomCard(
             if (!room.isPrivate) {
                 Box(
                     modifier = Modifier
-                        .align(Alignment.CenterStart)
-                        .fillMaxSize()
-                        .background(Color.Transparent)
-                )
-
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.CenterStart)
-                        .size(width = 5.dp, height = 220.dp)
+                        .width(5.dp)
+                        .fillMaxHeight()
                         .background(Color(0xFF81C784))
                 )
             }
@@ -409,7 +406,7 @@ private fun ClubRoomCard(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(22.dp),
+                    .padding(18.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Row(
