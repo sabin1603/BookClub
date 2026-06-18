@@ -76,6 +76,8 @@ import com.example.bookclub.viewmodel.RoomViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.LaunchedEffect
 
 @Composable
 fun RoomDetailsScreen(
@@ -90,12 +92,24 @@ fun RoomDetailsScreen(
     val members by viewModel.observeMembers(roomId).collectAsState(initial = emptyList())
     val actionState by viewModel.actionState.collectAsState()
 
+
+
     val currentUserId = viewModel.currentUserId
     val currentMember = members.firstOrNull { it.userId == currentUserId }
     val isMuted = currentMember?.canMessage == false
 
     var messageText by remember { mutableStateOf("") }
     var showMutedBanner by remember { mutableStateOf(true) }
+
+    val messageListState = rememberLazyListState()
+    var didScrollToLatestMessages by remember { mutableStateOf(false) }
+
+    LaunchedEffect(messages.size) {
+        if (messages.isNotEmpty() && !didScrollToLatestMessages) {
+            messageListState.scrollToItem(messages.size)
+            didScrollToLatestMessages = true
+        }
+    }
 
     Scaffold(
         containerColor = BookBackground,
@@ -165,6 +179,7 @@ fun RoomDetailsScreen(
             }
 
             LazyColumn(
+                state = messageListState,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth(),
