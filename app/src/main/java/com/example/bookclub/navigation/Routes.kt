@@ -5,6 +5,7 @@ object Routes {
     const val Register = "register"
     const val Home = "home"
     const val BookSearch = "bookSearch"
+    const val Profile = "profile"
 
     const val CreateRoom = "createRoom?bookId={bookId}"
     const val RoomDetails = "roomDetails/{roomId}"

@@ -77,6 +77,7 @@ import androidx.compose.foundation.layout.width
 fun HomeScreen(
     onCreateRoomClick: () -> Unit,
     onBookSearchClick: () -> Unit,
+    onProfileClick: () -> Unit,
     onRoomClick: (Long) -> Unit,
     onLogout: () -> Unit,
     viewModel: RoomViewModel = viewModel()
@@ -156,7 +157,8 @@ fun HomeScreen(
         },
         bottomBar = {
             ClubsBottomBar(
-                onSearchClick = onBookSearchClick
+                onSearchClick = onBookSearchClick,
+                onProfileClick = onProfileClick
             )
         }
     ) { padding ->
@@ -559,7 +561,8 @@ private fun EmptyRoomsCard() {
 
 @Composable
 private fun ClubsBottomBar(
-    onSearchClick: () -> Unit
+    onSearchClick: () -> Unit,
+    onProfileClick: () -> Unit
 ) {
     NavigationBar(
         containerColor = BookSurfaceContainerHigh,
@@ -569,8 +572,8 @@ private fun ClubsBottomBar(
             .height(96.dp)
     ) {
         NavigationBarItem(
-            selected = true,
-            onClick = {},
+            selected = false,
+            onClick = onProfileClick,
             icon = {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally

@@ -17,6 +17,7 @@ import com.example.bookclub.ui.screens.BookSearchScreen
 import com.example.bookclub.ui.screens.CreateRoomScreen
 import com.example.bookclub.ui.screens.HomeScreen
 import com.example.bookclub.ui.screens.LoginScreen
+import com.example.bookclub.ui.screens.ProfileScreen
 import com.example.bookclub.ui.screens.RegisterScreen
 import com.example.bookclub.ui.screens.RoomAdminScreen
 import com.example.bookclub.ui.screens.RoomDetailsScreen
@@ -72,10 +73,39 @@ fun AppNavigation() {
                     navController.navigate(Routes.createRoom())
                 },
                 onBookSearchClick = {
-                    navController.navigate(Routes.BookSearch)
+                    navController.navigate(Routes.BookSearch) {
+                        launchSingleTop = true
+                    }
+                },
+                onProfileClick = {
+                    navController.navigate(Routes.Profile) {
+                        launchSingleTop = true
+                    }
                 },
                 onRoomClick = { roomId ->
                     navController.navigate(Routes.roomDetails(roomId))
+                },
+                onLogout = {
+                    navController.navigate(Routes.Login) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            inclusive = true
+                        }
+                    }
+                }
+            )
+        }
+
+        composable(Routes.Profile) {
+            ProfileScreen(
+                onClubsClick = {
+                    navController.navigate(Routes.Home) {
+                        launchSingleTop = true
+                    }
+                },
+                onSearchClick = {
+                    navController.navigate(Routes.BookSearch) {
+                        launchSingleTop = true
+                    }
                 },
                 onLogout = {
                     navController.navigate(Routes.Login) {
@@ -91,6 +121,16 @@ fun AppNavigation() {
             BookSearchScreen(
                 onBack = {
                     navController.popBackStack()
+                },
+                onClubsClick = {
+                    navController.navigate(Routes.Home) {
+                        launchSingleTop = true
+                    }
+                },
+                onProfileClick = {
+                    navController.navigate(Routes.Profile) {
+                        launchSingleTop = true
+                    }
                 },
                 onBookSelected = { bookId ->
                     navController.navigate(Routes.createRoom(bookId))

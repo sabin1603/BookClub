@@ -24,4 +24,25 @@ interface UserDao {
         OR LOWER(username) = LOWER(:username)
     """)
     suspend fun countByEmailOrUsername(email: String, username: String): Int
+
+    @Query("""
+        SELECT COUNT(*) FROM users
+        WHERE LOWER(username) = LOWER(:username)
+        AND id != :userId
+    """)
+    suspend fun countByUsernameExcept(username: String, userId: Long): Int
+
+    @Query("""
+        UPDATE users
+        SET username = :username
+        WHERE id = :userId
+    """)
+    suspend fun updateUsername(userId: Long, username: String)
+
+    @Query("""
+        UPDATE users
+        SET passwordHash = :passwordHash
+        WHERE id = :userId
+    """)
+    suspend fun updatePasswordHash(userId: Long, passwordHash: String)
 }

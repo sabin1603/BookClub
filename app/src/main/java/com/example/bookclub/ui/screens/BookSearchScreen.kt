@@ -89,6 +89,8 @@ private data class BookCategory(
 @Composable
 fun BookSearchScreen(
     onBack: () -> Unit,
+    onClubsClick: () -> Unit,
+    onProfileClick: () -> Unit,
     onBookSelected: (Long) -> Unit,
     viewModel: BookViewModel = viewModel()
 ) {
@@ -128,7 +130,8 @@ fun BookSearchScreen(
         },
         bottomBar = {
             SearchBottomBar(
-                onClubsClick = onBack
+                onClubsClick = onClubsClick,
+                onProfileClick = onProfileClick
             )
         }
     ) { padding ->
@@ -551,7 +554,8 @@ private fun EmptySearchState(
 
 @Composable
 private fun SearchBottomBar(
-    onClubsClick: () -> Unit
+    onClubsClick: () -> Unit,
+    onProfileClick: () -> Unit
 ) {
     NavigationBar(
         containerColor = BookSurfaceContainerHigh,
@@ -619,7 +623,7 @@ private fun SearchBottomBar(
 
         NavigationBarItem(
             selected = false,
-            onClick = {},
+            onClick = onProfileClick,
             icon = {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(
