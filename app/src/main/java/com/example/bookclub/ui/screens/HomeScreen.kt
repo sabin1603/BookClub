@@ -572,8 +572,8 @@ private fun ClubsBottomBar(
             .height(96.dp)
     ) {
         NavigationBarItem(
-            selected = false,
-            onClick = onProfileClick,
+            selected = true,
+            onClick = {},
             icon = {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally
@@ -633,7 +633,7 @@ private fun ClubsBottomBar(
 
         NavigationBarItem(
             selected = false,
-            onClick = {},
+            onClick = onProfileClick,
             icon = {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally

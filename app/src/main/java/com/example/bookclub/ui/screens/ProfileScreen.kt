@@ -524,7 +524,6 @@ private fun ProfileBottomBar(
         modifier = Modifier
             .fillMaxWidth()
             .height(96.dp)
-            .navigationBarsPadding()
     ) {
         NavigationBarItem(
             selected = false,
@@ -563,7 +562,7 @@ private fun ProfileBottomBar(
                         painter = painterResource(id = R.drawable.ic_nav_search),
                         contentDescription = null,
                         tint = BookOnSurfaceVariant,
-                        modifier = Modifier.size(28.dp)
+                        modifier = Modifier.size(25.dp)
                     )
 
                     Text(

@@ -33,7 +33,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -563,7 +562,6 @@ private fun SearchBottomBar(
         modifier = Modifier
             .fillMaxWidth()
             .height(96.dp)
-            .navigationBarsPadding()
     ) {
         NavigationBarItem(
             selected = false,
@@ -602,7 +600,7 @@ private fun SearchBottomBar(
                         painter = painterResource(id = R.drawable.ic_nav_search),
                         contentDescription = null,
                         tint = BookSecondary,
-                        modifier = Modifier.size(28.dp)
+                        modifier = Modifier.size(25.dp)
                     )
 
                     Text(
