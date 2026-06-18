@@ -158,6 +158,23 @@ class RoomRepository(
         return Result.success(Unit)
     }
 
+    suspend fun leaveRoom(
+        roomId: Long,
+        currentUserId: Long
+    ): Result<Unit> {
+        val membership = membershipDao.findMembership(roomId, currentUserId)
+            ?: return Result.failure(Exception("You are not a member of this room."))
+
+        if (membership.isAdmin && membershipDao.countAdmins(roomId) <= 1) {
+            return Result.failure(
+                Exception("Assign another admin or delete the room before leaving.")
+            )
+        }
+
+        membershipDao.removeMembership(roomId, currentUserId)
+        return Result.success(Unit)
+    }
+
     suspend fun sendMessage(
         roomId: Long,
         userId: Long,
@@ -349,6 +366,10 @@ class RoomRepository(
     ): Result<Unit> {
         if (!isAdmin(roomId, currentUserId)) {
             return Result.failure(Exception("Only admins can remove members."))
+        }
+
+        if (currentUserId == targetUserId) {
+            return Result.failure(Exception("Use Leave room if you want to leave this room."))
         }
 
         val targetMembership = membershipDao.findMembership(roomId, targetUserId)

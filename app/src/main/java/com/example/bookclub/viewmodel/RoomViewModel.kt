@@ -124,6 +124,27 @@ class RoomViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun leaveRoom(
+        roomId: Long,
+        onSuccess: () -> Unit = {}
+    ) {
+        val userId = loggedUserId ?: run {
+            _actionState.value = RoomActionState(errorMessage = "You must be logged in.")
+            return
+        }
+
+        viewModelScope.launch {
+            repository.leaveRoom(roomId, userId)
+                .onSuccess {
+                    _actionState.value = RoomActionState()
+                    onSuccess()
+                }
+                .onFailure { error ->
+                    _actionState.value = RoomActionState(errorMessage = error.message)
+                }
+        }
+    }
+
     fun sendMessage(roomId: Long, content: String) {
         val userId = loggedUserId ?: run {
             _actionState.value = RoomActionState(errorMessage = "You must be logged in.")

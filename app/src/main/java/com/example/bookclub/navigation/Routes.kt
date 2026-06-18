@@ -8,7 +8,7 @@ object Routes {
 
     const val CreateRoom = "createRoom?bookId={bookId}"
     const val RoomDetails = "roomDetails/{roomId}"
-    const val RoomAdmin = "roomAdmin/{roomId}"
+    const val RoomSettings = "roomSettings/{roomId}"
 
     fun createRoom(bookId: Long? = null): String {
         return if (bookId == null) {
@@ -22,7 +22,7 @@ object Routes {
         return "roomDetails/$roomId"
     }
 
-    fun roomAdmin(roomId: Long): String {
-        return "roomAdmin/$roomId"
+    fun roomSettings(roomId: Long): String {
+        return "roomSettings/$roomId"
     }
 }

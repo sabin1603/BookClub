@@ -14,8 +14,7 @@ interface RoomDao {
 
     @Query("""
         SELECT * FROM rooms
-        WHERE ownerUserId = :userId
-        OR id IN (
+        WHERE id IN (
             SELECT roomId FROM memberships WHERE userId = :userId
         )
         ORDER BY createdAt DESC

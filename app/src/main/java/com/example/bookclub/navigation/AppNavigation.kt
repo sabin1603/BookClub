@@ -1,8 +1,11 @@
 package com.example.bookclub.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -17,6 +20,8 @@ import com.example.bookclub.ui.screens.LoginScreen
 import com.example.bookclub.ui.screens.RegisterScreen
 import com.example.bookclub.ui.screens.RoomAdminScreen
 import com.example.bookclub.ui.screens.RoomDetailsScreen
+import com.example.bookclub.ui.screens.RoomMembersScreen
+import com.example.bookclub.viewmodel.RoomViewModel
 
 @Composable
 fun AppNavigation() {
@@ -139,13 +144,13 @@ fun AppNavigation() {
                     navController.popBackStack()
                 },
                 onAdminClick = {
-                    navController.navigate(Routes.roomAdmin(roomId))
+                    navController.navigate(Routes.roomSettings(roomId))
                 }
             )
         }
 
         composable(
-            route = Routes.RoomAdmin,
+            route = Routes.RoomSettings,
             arguments = listOf(
                 navArgument("roomId") {
                     type = NavType.LongType
@@ -153,20 +158,48 @@ fun AppNavigation() {
             )
         ) { backStackEntry ->
             val roomId = backStackEntry.arguments?.getLong("roomId") ?: return@composable
+            val roomViewModel: RoomViewModel = viewModel()
+            val isAdmin by roomViewModel.observeIsCurrentUserAdmin(roomId)
+                .collectAsState(initial = false)
 
-            RoomAdminScreen(
-                roomId = roomId,
-                onBack = {
-                    navController.popBackStack()
-                },
-                onRoomDeleted = {
-                    navController.navigate(Routes.Home) {
-                        popUpTo(Routes.Home) {
-                            inclusive = true
+            if (isAdmin) {
+                RoomAdminScreen(
+                    roomId = roomId,
+                    onBack = {
+                        navController.popBackStack()
+                    },
+                    onRoomDeleted = {
+                        navController.navigate(Routes.Home) {
+                            popUpTo(Routes.Home) {
+                                inclusive = true
+                            }
                         }
-                    }
-                }
-            )
+                    },
+                    onLeaveRoomSuccess = {
+                        navController.navigate(Routes.Home) {
+                            popUpTo(Routes.Home) {
+                                inclusive = true
+                            }
+                        }
+                    },
+                    viewModel = roomViewModel
+                )
+            } else {
+                RoomMembersScreen(
+                    roomId = roomId,
+                    onBack = {
+                        navController.popBackStack()
+                    },
+                    onLeaveRoomSuccess = {
+                        navController.navigate(Routes.Home) {
+                            popUpTo(Routes.Home) {
+                                inclusive = true
+                            }
+                        }
+                    },
+                    viewModel = roomViewModel
+                )
+            }
         }
     }
 }
