@@ -1,5 +1,8 @@
 package com.example.bookclub.navigation
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -33,9 +36,32 @@ fun AppNavigation() {
         if (app.sessionManager.isLoggedIn()) Routes.Home else Routes.Login
     }
 
+    fun navigateToTopLevel(route: String) {
+        navController.navigate(route) {
+            popUpTo(navController.graph.findStartDestination().id) {
+                saveState = true
+            }
+
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
+
     NavHost(
         navController = navController,
-        startDestination = startDestination
+        startDestination = startDestination,
+        enterTransition = {
+            fadeIn(animationSpec = tween(180))
+        },
+        exitTransition = {
+            fadeOut(animationSpec = tween(180))
+        },
+        popEnterTransition = {
+            fadeIn(animationSpec = tween(180))
+        },
+        popExitTransition = {
+            fadeOut(animationSpec = tween(180))
+        }
     ) {
         composable(Routes.Login) {
             LoginScreen(
@@ -73,14 +99,10 @@ fun AppNavigation() {
                     navController.navigate(Routes.createRoom())
                 },
                 onBookSearchClick = {
-                    navController.navigate(Routes.BookSearch) {
-                        launchSingleTop = true
-                    }
+                    navigateToTopLevel(Routes.BookSearch)
                 },
                 onProfileClick = {
-                    navController.navigate(Routes.Profile) {
-                        launchSingleTop = true
-                    }
+                    navigateToTopLevel(Routes.Profile)
                 },
                 onRoomClick = { roomId ->
                     navController.navigate(Routes.roomDetails(roomId))
@@ -98,14 +120,10 @@ fun AppNavigation() {
         composable(Routes.Profile) {
             ProfileScreen(
                 onClubsClick = {
-                    navController.navigate(Routes.Home) {
-                        launchSingleTop = true
-                    }
+                    navigateToTopLevel(Routes.Home)
                 },
                 onSearchClick = {
-                    navController.navigate(Routes.BookSearch) {
-                        launchSingleTop = true
-                    }
+                    navigateToTopLevel(Routes.BookSearch)
                 },
                 onLogout = {
                     navController.navigate(Routes.Login) {
@@ -123,14 +141,10 @@ fun AppNavigation() {
                     navController.popBackStack()
                 },
                 onClubsClick = {
-                    navController.navigate(Routes.Home) {
-                        launchSingleTop = true
-                    }
+                    navigateToTopLevel(Routes.Home)
                 },
                 onProfileClick = {
-                    navController.navigate(Routes.Profile) {
-                        launchSingleTop = true
-                    }
+                    navigateToTopLevel(Routes.Profile)
                 },
                 onBookSelected = { bookId ->
                     navController.navigate(Routes.createRoom(bookId))
