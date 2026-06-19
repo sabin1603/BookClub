@@ -18,25 +18,35 @@ class BookRepository(
         }
 
         return try {
-            val response = api.searchBooks(cleanQuery)
+            val englishQuery = "$cleanQuery language:eng"
+            val response = api.searchBooks(englishQuery)
 
             val books = response.docs
-                .take(20)
                 .mapNotNull { dto ->
-                    val title = dto.title ?: return@mapNotNull null
+                    val englishEditionTitle = dto.editions
+                        ?.docs
+                        ?.firstOrNull { edition ->
+                            edition.language?.contains("eng") == true && !edition.title.isNullOrBlank()
+                        }
+                        ?.title
+
+                    val displayTitle = englishEditionTitle ?: dto.title ?: return@mapNotNull null
                     val author = dto.authorNames?.firstOrNull() ?: "Unknown author"
+
                     val coverUrl = dto.coverId?.let {
                         "https://covers.openlibrary.org/b/id/$it-M.jpg"
                     }
 
                     BookSearchItem(
-                        title = title,
+                        title = displayTitle,
                         author = author,
                         firstPublishYear = dto.firstPublishYear,
                         coverUrl = coverUrl,
                         openLibraryKey = dto.key
                     )
                 }
+                .distinctBy { "${it.title.lowercase()}-${it.author.lowercase()}" }
+                .take(20)
 
             Result.success(books)
         } catch (e: Exception) {

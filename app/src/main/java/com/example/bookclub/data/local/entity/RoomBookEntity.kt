@@ -6,24 +6,26 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 
 @Entity(
-    tableName = "rooms",
+    tableName = "room_books",
     foreignKeys = [
         ForeignKey(
-            entity = UserEntity::class,
+            entity = BookClubRoomEntity::class,
             parentColumns = ["id"],
-            childColumns = ["ownerUserId"],
+            childColumns = ["roomId"],
             onDelete = ForeignKey.CASCADE
         )
     ],
-    indices = [Index("ownerUserId")]
+    indices = [Index("roomId")]
 )
-data class BookClubRoomEntity(
+data class RoomBookEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
+    val roomId: Long,
     val title: String,
-    val description: String,
-    val isPrivate: Boolean,
-    val accessCode: String?,
-    val ownerUserId: Long,
-    val createdAt: Long = System.currentTimeMillis()
+    val author: String,
+    val firstPublishYear: Int?,
+    val coverUrl: String?,
+    val openLibraryKey: String?,
+    val description: String?,
+    val displayOrder: Int = 0
 )

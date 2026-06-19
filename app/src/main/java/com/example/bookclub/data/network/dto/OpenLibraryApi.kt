@@ -10,7 +10,10 @@ interface OpenLibraryApi {
 
     @GET("search.json")
     suspend fun searchBooks(
-        @Query("q") query: String
+        @Query("q") query: String,
+        @Query("lang") language: String = "en",
+        @Query("fields") fields: String = "key,title,author_name,first_publish_year,cover_i,editions,editions.title,editions.language",
+        @Query("limit") limit: Int = 20
     ): OpenLibrarySearchResponse
 
     @GET("works/{workId}.json")

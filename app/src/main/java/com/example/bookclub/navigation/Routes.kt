@@ -5,9 +5,11 @@ object Routes {
     const val Register = "register"
     const val Home = "home"
     const val BookSearch = "bookSearch"
+    const val Profile = "profile"
 
     const val CreateRoom = "createRoom?bookId={bookId}"
     const val RoomDetails = "roomDetails/{roomId}"
+    const val RoomSettings = "roomSettings/{roomId}"
 
     fun createRoom(bookId: Long? = null): String {
         return if (bookId == null) {
@@ -19,5 +21,9 @@ object Routes {
 
     fun roomDetails(roomId: Long): String {
         return "roomDetails/$roomId"
+    }
+
+    fun roomSettings(roomId: Long): String {
+        return "roomSettings/$roomId"
     }
 }

@@ -1,8 +1,14 @@
 package com.example.bookclub.navigation
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -14,8 +20,12 @@ import com.example.bookclub.ui.screens.BookSearchScreen
 import com.example.bookclub.ui.screens.CreateRoomScreen
 import com.example.bookclub.ui.screens.HomeScreen
 import com.example.bookclub.ui.screens.LoginScreen
+import com.example.bookclub.ui.screens.ProfileScreen
 import com.example.bookclub.ui.screens.RegisterScreen
+import com.example.bookclub.ui.screens.RoomAdminScreen
 import com.example.bookclub.ui.screens.RoomDetailsScreen
+import com.example.bookclub.ui.screens.RoomMembersScreen
+import com.example.bookclub.viewmodel.RoomViewModel
 
 @Composable
 fun AppNavigation() {
@@ -26,9 +36,32 @@ fun AppNavigation() {
         if (app.sessionManager.isLoggedIn()) Routes.Home else Routes.Login
     }
 
+    fun navigateToTopLevel(route: String) {
+        navController.navigate(route) {
+            popUpTo(navController.graph.findStartDestination().id) {
+                saveState = true
+            }
+
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
+
     NavHost(
         navController = navController,
-        startDestination = startDestination
+        startDestination = startDestination,
+        enterTransition = {
+            fadeIn(animationSpec = tween(180))
+        },
+        exitTransition = {
+            fadeOut(animationSpec = tween(180))
+        },
+        popEnterTransition = {
+            fadeIn(animationSpec = tween(180))
+        },
+        popExitTransition = {
+            fadeOut(animationSpec = tween(180))
+        }
     ) {
         composable(Routes.Login) {
             LoginScreen(
@@ -66,10 +99,31 @@ fun AppNavigation() {
                     navController.navigate(Routes.createRoom())
                 },
                 onBookSearchClick = {
-                    navController.navigate(Routes.BookSearch)
+                    navigateToTopLevel(Routes.BookSearch)
+                },
+                onProfileClick = {
+                    navigateToTopLevel(Routes.Profile)
                 },
                 onRoomClick = { roomId ->
                     navController.navigate(Routes.roomDetails(roomId))
+                },
+                onLogout = {
+                    navController.navigate(Routes.Login) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            inclusive = true
+                        }
+                    }
+                }
+            )
+        }
+
+        composable(Routes.Profile) {
+            ProfileScreen(
+                onClubsClick = {
+                    navigateToTopLevel(Routes.Home)
+                },
+                onSearchClick = {
+                    navigateToTopLevel(Routes.BookSearch)
                 },
                 onLogout = {
                     navController.navigate(Routes.Login) {
@@ -85,6 +139,12 @@ fun AppNavigation() {
             BookSearchScreen(
                 onBack = {
                     navController.popBackStack()
+                },
+                onClubsClick = {
+                    navigateToTopLevel(Routes.Home)
+                },
+                onProfileClick = {
+                    navigateToTopLevel(Routes.Profile)
                 },
                 onBookSelected = { bookId ->
                     navController.navigate(Routes.createRoom(bookId))
@@ -136,8 +196,64 @@ fun AppNavigation() {
                 roomId = roomId,
                 onBack = {
                     navController.popBackStack()
+                },
+                onAdminClick = {
+                    navController.navigate(Routes.roomSettings(roomId))
                 }
             )
+        }
+
+        composable(
+            route = Routes.RoomSettings,
+            arguments = listOf(
+                navArgument("roomId") {
+                    type = NavType.LongType
+                }
+            )
+        ) { backStackEntry ->
+            val roomId = backStackEntry.arguments?.getLong("roomId") ?: return@composable
+            val roomViewModel: RoomViewModel = viewModel()
+            val isAdmin by roomViewModel.observeIsCurrentUserAdmin(roomId)
+                .collectAsState(initial = false)
+
+            if (isAdmin) {
+                RoomAdminScreen(
+                    roomId = roomId,
+                    onBack = {
+                        navController.popBackStack()
+                    },
+                    onRoomDeleted = {
+                        navController.navigate(Routes.Home) {
+                            popUpTo(Routes.Home) {
+                                inclusive = true
+                            }
+                        }
+                    },
+                    onLeaveRoomSuccess = {
+                        navController.navigate(Routes.Home) {
+                            popUpTo(Routes.Home) {
+                                inclusive = true
+                            }
+                        }
+                    },
+                    viewModel = roomViewModel
+                )
+            } else {
+                RoomMembersScreen(
+                    roomId = roomId,
+                    onBack = {
+                        navController.popBackStack()
+                    },
+                    onLeaveRoomSuccess = {
+                        navController.navigate(Routes.Home) {
+                            popUpTo(Routes.Home) {
+                                inclusive = true
+                            }
+                        }
+                    },
+                    viewModel = roomViewModel
+                )
+            }
         }
     }
 }

@@ -2,7 +2,6 @@ package com.example.bookclub.data.local.dao
 
 import androidx.room.Dao
 import androidx.room.Insert
-import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.example.bookclub.data.local.entity.BookClubRoomEntity
 import kotlinx.coroutines.flow.Flow
@@ -15,23 +14,35 @@ interface RoomDao {
 
     @Query("""
         SELECT * FROM rooms
-        WHERE isPrivate = 0
-        OR ownerUserId = :userId
-        OR id IN (
+        WHERE id IN (
             SELECT roomId FROM memberships WHERE userId = :userId
         )
         ORDER BY createdAt DESC
     """)
-    fun observeVisibleRooms(userId: Long): Flow<List<BookClubRoomEntity>>
+    fun observeJoinedRooms(userId: Long): Flow<List<BookClubRoomEntity>>
 
     @Query("SELECT * FROM rooms WHERE id = :roomId LIMIT 1")
     fun observeRoom(roomId: Long): Flow<BookClubRoomEntity?>
 
+    @Query("SELECT * FROM rooms WHERE id = :roomId LIMIT 1")
+    suspend fun findRoomById(roomId: Long): BookClubRoomEntity?
+
     @Query("""
-        SELECT * FROM rooms
-        WHERE isPrivate = 1
-        AND accessCode = :accessCode
-        LIMIT 1
+        UPDATE rooms
+        SET title = :title,
+            description = :description,
+            isPrivate = :isPrivate,
+            accessCode = :accessCode
+        WHERE id = :roomId
     """)
-    suspend fun findPrivateRoomByAccessCode(accessCode: String): BookClubRoomEntity?
+    suspend fun updateRoom(
+        roomId: Long,
+        title: String,
+        description: String,
+        isPrivate: Boolean,
+        accessCode: String?
+    )
+
+    @Query("DELETE FROM rooms WHERE id = :roomId")
+    suspend fun deleteRoom(roomId: Long)
 }

@@ -6,5 +6,6 @@ data class MessageWithUser(
     val userId: Long,
     val content: String,
     val createdAt: Long,
-    val username: String
+    val username: String,
+    val profileImageUri: String? = null
 )
