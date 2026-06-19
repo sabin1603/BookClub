@@ -7,5 +7,6 @@ data class MemberWithUser(
     val email: String,
     val joinedAt: Long,
     val isAdmin: Boolean,
-    val canMessage: Boolean
+    val canMessage: Boolean,
+    val profileImageUri: String? = null
 )

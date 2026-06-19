@@ -85,6 +85,7 @@ import com.example.bookclub.ui.theme.BookSurfaceContainerLow
 import com.example.bookclub.viewmodel.RoomViewModel
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.ColumnScope
+import com.example.bookclub.ui.components.UserAvatar
 
 private const val ROOM_TITLE_MAX_LENGTH = 60
 private const val ROOM_DESCRIPTION_MAX_LENGTH = 300
@@ -752,7 +753,11 @@ private fun MemberAdminRow(
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        MemberInitialAvatar(member.username)
+        UserAvatar(
+            username = member.username,
+            profileImageUri = member.profileImageUri,
+            size = 48.dp
+        )
 
         Column(
             modifier = Modifier
@@ -1052,30 +1057,6 @@ private fun LabeledAdminField(
                 cursorColor = BookPrimary
             ),
             modifier = Modifier.fillMaxWidth()
-        )
-    }
-}
-
-@Composable
-private fun MemberInitialAvatar(
-    username: String
-) {
-    val initial = username.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "?"
-
-    Box(
-        modifier = Modifier
-            .size(48.dp)
-            .background(
-                color = BookSecondaryContainer,
-                shape = CircleShape
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = initial,
-            color = BookSecondary,
-            style = androidx.compose.material3.MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.Bold
         )
     }
 }

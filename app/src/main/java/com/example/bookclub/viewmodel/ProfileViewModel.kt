@@ -34,22 +34,44 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
 
     fun loadProfile() {
         val userId = app.sessionManager.getUserId() ?: run {
-            _uiState.value = ProfileUiState(errorMessage = "You must be logged in.")
+            _uiState.value = ProfileUiState(
+                errorMessage = "You must be logged in."
+            )
             return
         }
 
         viewModelScope.launch {
-            val user = userDao.findById(userId)
+            var user = userDao.findById(userId)
+
+            val legacyProfileImage =
+                app.sessionManager.getProfileImageUri(userId)
+
+            if (
+                user != null &&
+                user.profileImageUri.isNullOrBlank() &&
+                !legacyProfileImage.isNullOrBlank()
+            ) {
+                userDao.updateProfileImageUri(
+                    userId = userId,
+                    profileImageUri = legacyProfileImage
+                )
+
+                user = userDao.findById(userId)
+            }
+
             _uiState.value = ProfileUiState(
                 user = user,
-                profileImageUri = app.sessionManager.getProfileImageUri(userId)
+                profileImageUri = user?.profileImageUri
+                    ?: legacyProfileImage
             )
         }
     }
 
     fun updateProfilePicture(sourceUri: Uri) {
         val userId = app.sessionManager.getUserId() ?: run {
-            _uiState.value = _uiState.value.copy(errorMessage = "You must be logged in.")
+            _uiState.value = _uiState.value.copy(
+                errorMessage = "You must be logged in."
+            )
             return
         }
 
@@ -68,14 +90,25 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                     return@launch
                 }
 
-                app.sessionManager.saveProfileImageUri(userId, savedUri)
+                userDao.updateProfileImageUri(
+                    userId = userId,
+                    profileImageUri = savedUri
+                )
+
+                app.sessionManager.saveProfileImageUri(
+                    userId = userId,
+                    imageUri = savedUri
+                )
+
+                val updatedUser = userDao.findById(userId)
 
                 _uiState.value = _uiState.value.copy(
+                    user = updatedUser,
                     profileImageUri = savedUri,
                     successMessage = "Profile picture updated.",
                     errorMessage = null
                 )
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 _uiState.value = _uiState.value.copy(
                     errorMessage = "Could not update profile picture.",
                     successMessage = null
@@ -86,7 +119,9 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
 
     fun updateUsername(newUsername: String) {
         val userId = app.sessionManager.getUserId() ?: run {
-            _uiState.value = _uiState.value.copy(errorMessage = "You must be logged in.")
+            _uiState.value = _uiState.value.copy(
+                errorMessage = "You must be logged in."
+            )
             return
         }
 
@@ -101,7 +136,8 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         }
 
         viewModelScope.launch {
-            val alreadyExists = userDao.countByUsernameExcept(cleanUsername, userId) > 0
+            val alreadyExists =
+                userDao.countByUsernameExcept(cleanUsername, userId) > 0
 
             if (alreadyExists) {
                 _uiState.value = _uiState.value.copy(
@@ -130,7 +166,9 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         confirmPassword: String
     ) {
         val userId = app.sessionManager.getUserId() ?: run {
-            _uiState.value = _uiState.value.copy(errorMessage = "You must be logged in.")
+            _uiState.value = _uiState.value.copy(
+                errorMessage = "You must be logged in."
+            )
             return
         }
 
@@ -177,7 +215,10 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                 return@launch
             }
 
-            userDao.updatePasswordHash(userId, hashPassword(newPassword))
+            userDao.updatePasswordHash(
+                userId = userId,
+                passwordHash = hashPassword(newPassword)
+            )
 
             _uiState.value = _uiState.value.copy(
                 successMessage = "Password changed.",
@@ -194,12 +235,19 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         userId: Long,
         sourceUri: Uri
     ): String? {
-        val directory = File(getApplication<Application>().filesDir, "profile_images")
+        val directory = File(
+            getApplication<Application>().filesDir,
+            "profile_images"
+        )
+
         if (!directory.exists()) {
             directory.mkdirs()
         }
 
-        val destinationFile = File(directory, "profile_$userId.jpg")
+        val destinationFile = File(
+            directory,
+            "profile_${userId}_${System.currentTimeMillis()}.jpg"
+        )
 
         val inputStream = getApplication<Application>()
             .contentResolver
@@ -211,6 +259,18 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                 input.copyTo(output)
             }
         }
+
+        directory.listFiles()
+            ?.filter { file ->
+                file != destinationFile &&
+                        (
+                                file.name == "profile_$userId.jpg" ||
+                                        file.name.startsWith("profile_${userId}_")
+                                )
+            }
+            ?.forEach { oldFile ->
+                oldFile.delete()
+            }
 
         return Uri.fromFile(destinationFile).toString()
     }

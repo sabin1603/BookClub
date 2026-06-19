@@ -13,18 +13,21 @@ interface MessageDao {
     @Insert
     suspend fun insertMessage(message: MessageEntity): Long
 
-    @Query("""
+    @Query(
+        """
         SELECT 
             messages.id AS id,
             messages.roomId AS roomId,
             messages.userId AS userId,
             messages.content AS content,
             messages.createdAt AS createdAt,
-            users.username AS username
+            users.username AS username,
+            users.profileImageUri AS profileImageUri
         FROM messages
         INNER JOIN users ON users.id = messages.userId
         WHERE messages.roomId = :roomId
         ORDER BY messages.createdAt ASC
-    """)
+        """
+    )
     fun observeMessagesForRoom(roomId: Long): Flow<List<MessageWithUser>>
 }

@@ -78,6 +78,7 @@ import java.util.Date
 import java.util.Locale
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.LaunchedEffect
+import com.example.bookclub.ui.components.UserAvatar
 
 @Composable
 fun RoomDetailsScreen(
@@ -523,103 +524,95 @@ private fun MessageBubble(
     message: MessageWithUser,
     isMine: Boolean
 ) {
-    if (isMine) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = if (isMine) {
+            Arrangement.End
+        } else {
+            Arrangement.Start
+        },
+        verticalAlignment = Alignment.Bottom
+    ) {
+        if (!isMine) {
+            UserAvatar(
+                username = message.username,
+                profileImageUri = message.profileImageUri,
+                size = 36.dp
+            )
+
+            Spacer(modifier = Modifier.width(10.dp))
+        }
+
         Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.End
+            modifier = Modifier.widthIn(max = 300.dp),
+            horizontalAlignment = if (isMine) {
+                Alignment.End
+            } else {
+                Alignment.Start
+            }
         ) {
             Text(
-                text = "Me • ${formatMessageTime(message.createdAt)}",
+                text = if (isMine) {
+                    "Me • ${formatMessageTime(message.createdAt)}"
+                } else {
+                    "${message.username} • ${formatMessageTime(message.createdAt)}"
+                },
                 color = BookOnSurfaceVariant,
                 style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(end = 8.dp, bottom = 4.dp)
+                modifier = Modifier.padding(
+                    start = if (isMine) 0.dp else 8.dp,
+                    end = if (isMine) 8.dp else 0.dp,
+                    bottom = 4.dp
+                )
             )
 
             Box(
                 modifier = Modifier
-                    .fillMaxWidth(0.82f)
                     .background(
-                        color = BookPrimaryContainer,
-                        shape = RoundedCornerShape(
-                            topStart = 18.dp,
-                            topEnd = 18.dp,
-                            bottomStart = 18.dp,
-                            bottomEnd = 4.dp
-                        )
-                    )
-                    .padding(16.dp)
-            ) {
-                Text(
-                    text = message.content,
-                    color = BookOnPrimary,
-                    style = androidx.compose.material3.MaterialTheme.typography.bodyLarge
-                )
-            }
-        }
-    } else {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.Bottom
-        ) {
-            AvatarCircle(username = message.username)
-
-            Spacer(modifier = Modifier.width(10.dp))
-
-            Column(
-                modifier = Modifier.widthIn(max = 300.dp)
-            ) {
-                Text(
-                    text = "${message.username} • ${formatMessageTime(message.createdAt)}",
-                    color = BookOnSurfaceVariant,
-                    style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(start = 8.dp, bottom = 4.dp)
-                )
-
-                Box(
-                    modifier = Modifier
-                        .background(
-                            color = BookSurfaceContainerLow,
-                            shape = RoundedCornerShape(
+                        color = if (isMine) {
+                            BookPrimaryContainer
+                        } else {
+                            BookSurfaceContainerLow
+                        },
+                        shape = if (isMine) {
+                            RoundedCornerShape(
+                                topStart = 18.dp,
+                                topEnd = 18.dp,
+                                bottomStart = 18.dp,
+                                bottomEnd = 4.dp
+                            )
+                        } else {
+                            RoundedCornerShape(
                                 topStart = 18.dp,
                                 topEnd = 18.dp,
                                 bottomEnd = 18.dp,
                                 bottomStart = 4.dp
                             )
-                        )
-                        .padding(16.dp)
-                ) {
-                    Text(
-                        text = message.content,
-                        color = BookOnSurface,
-                        style = androidx.compose.material3.MaterialTheme.typography.bodyLarge
+                        }
                     )
-                }
+                    .padding(16.dp)
+            ) {
+                Text(
+                    text = message.content,
+                    color = if (isMine) {
+                        BookOnPrimary
+                    } else {
+                        BookOnSurface
+                    },
+                    style = androidx.compose.material3.MaterialTheme.typography.bodyLarge
+                )
             }
         }
-    }
-}
 
-@Composable
-private fun AvatarCircle(
-    username: String
-) {
-    val initial = username.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "?"
+        if (isMine) {
+            Spacer(modifier = Modifier.width(10.dp))
 
-    Box(
-        modifier = Modifier
-            .size(36.dp)
-            .background(
-                color = BookSecondaryContainer,
-                shape = CircleShape
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = initial,
-            color = BookSecondary,
-            style = androidx.compose.material3.MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.Bold
-        )
+            UserAvatar(
+                username = message.username,
+                profileImageUri = message.profileImageUri,
+                size = 36.dp
+            )
+        }
     }
 }
 

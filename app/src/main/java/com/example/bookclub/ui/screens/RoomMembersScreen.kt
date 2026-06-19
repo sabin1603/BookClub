@@ -50,6 +50,7 @@ import com.example.bookclub.ui.theme.BookSurface
 import com.example.bookclub.ui.theme.BookSurfaceContainerHigh
 import com.example.bookclub.ui.theme.BookSurfaceContainerLow
 import com.example.bookclub.viewmodel.RoomViewModel
+import com.example.bookclub.ui.components.UserAvatar
 
 @Composable
 fun RoomMembersScreen(
@@ -212,7 +213,11 @@ private fun ReadOnlyMemberCard(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            MemberAvatar(username = member.username)
+            UserAvatar(
+                username = member.username,
+                profileImageUri = member.profileImageUri,
+                size = 48.dp
+            )
 
             Column(
                 modifier = Modifier
@@ -255,30 +260,6 @@ private fun ReadOnlyMemberCard(
                 MessagingChip(canMessage = member.canMessage)
             }
         }
-    }
-}
-
-@Composable
-private fun MemberAvatar(
-    username: String
-) {
-    val initial = username.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "?"
-
-    Box(
-        modifier = Modifier
-            .background(
-                color = BookSecondaryContainer,
-                shape = CircleShape
-            )
-            .padding(horizontal = 14.dp, vertical = 11.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = initial,
-            color = BookSecondary,
-            style = androidx.compose.material3.MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.Bold
-        )
     }
 }
 
