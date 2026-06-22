@@ -4,12 +4,12 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -25,6 +25,7 @@ import com.example.bookclub.ui.screens.RegisterScreen
 import com.example.bookclub.ui.screens.RoomAdminScreen
 import com.example.bookclub.ui.screens.RoomDetailsScreen
 import com.example.bookclub.ui.screens.RoomMembersScreen
+import com.example.bookclub.viewmodel.ProfileViewModel
 import com.example.bookclub.viewmodel.RoomViewModel
 
 @Composable
@@ -33,17 +34,33 @@ fun AppNavigation() {
     val app = LocalContext.current.applicationContext as BookClubApplication
 
     val startDestination = remember {
-        if (app.sessionManager.isLoggedIn()) Routes.Home else Routes.Login
+        if (app.sessionManager.isLoggedIn()) {
+            Routes.Home
+        } else {
+            Routes.Login
+        }
     }
 
     fun navigateToTopLevel(route: String) {
         navController.navigate(route) {
-            popUpTo(navController.graph.findStartDestination().id) {
+            popUpTo(Routes.Home) {
                 saveState = true
             }
 
             launchSingleTop = true
             restoreState = true
+        }
+    }
+
+    fun navigateToLoginAfterLogout() {
+        navController.navigate(Routes.Login) {
+            popUpTo(Routes.Home) {
+                inclusive = true
+                saveState = false
+            }
+
+            launchSingleTop = true
+            restoreState = false
         }
     }
 
@@ -69,7 +86,11 @@ fun AppNavigation() {
                     navController.navigate(Routes.Home) {
                         popUpTo(Routes.Login) {
                             inclusive = true
+                            saveState = false
                         }
+
+                        launchSingleTop = true
+                        restoreState = false
                     }
                 },
                 onRegisterClick = {
@@ -84,7 +105,11 @@ fun AppNavigation() {
                     navController.navigate(Routes.Home) {
                         popUpTo(Routes.Login) {
                             inclusive = true
+                            saveState = false
                         }
+
+                        launchSingleTop = true
+                        restoreState = false
                     }
                 },
                 onLoginClick = {
@@ -108,16 +133,34 @@ fun AppNavigation() {
                     navController.navigate(Routes.roomDetails(roomId))
                 },
                 onLogout = {
-                    navController.navigate(Routes.Login) {
-                        popUpTo(navController.graph.findStartDestination().id) {
-                            inclusive = true
-                        }
-                    }
+                    navigateToLoginAfterLogout()
                 }
             )
         }
 
-        composable(Routes.Profile) {
+        composable(Routes.Profile) { backStackEntry ->
+            val currentUserId = app.sessionManager.getUserId()
+
+            if (currentUserId == null) {
+                LaunchedEffect(Unit) {
+                    navigateToLoginAfterLogout()
+                }
+
+                return@composable
+            }
+
+            val profileViewModel: ProfileViewModel = viewModel(
+                viewModelStoreOwner = backStackEntry,
+                key = "profile-view-model-$currentUserId"
+            )
+
+            LaunchedEffect(
+                currentUserId,
+                profileViewModel
+            ) {
+                profileViewModel.loadProfile()
+            }
+
             ProfileScreen(
                 onClubsClick = {
                     navigateToTopLevel(Routes.Home)
@@ -126,12 +169,9 @@ fun AppNavigation() {
                     navigateToTopLevel(Routes.BookSearch)
                 },
                 onLogout = {
-                    navController.navigate(Routes.Login) {
-                        popUpTo(navController.graph.findStartDestination().id) {
-                            inclusive = true
-                        }
-                    }
-                }
+                    navigateToLoginAfterLogout()
+                },
+                viewModel = profileViewModel
             )
         }
 
@@ -147,7 +187,9 @@ fun AppNavigation() {
                     navigateToTopLevel(Routes.Profile)
                 },
                 onBookSelected = { bookId ->
-                    navController.navigate(Routes.createRoom(bookId))
+                    navController.navigate(
+                        Routes.createRoom(bookId)
+                    )
                 }
             )
         }
@@ -161,8 +203,11 @@ fun AppNavigation() {
                 }
             )
         ) { backStackEntry ->
-            val rawBookId = backStackEntry.arguments?.getLong("bookId") ?: -1L
-            val bookId = if (rawBookId == -1L) null else rawBookId
+            val rawBookId =
+                backStackEntry.arguments?.getLong("bookId") ?: -1L
+
+            val bookId =
+                if (rawBookId == -1L) null else rawBookId
 
             CreateRoomScreen(
                 bookId = bookId,
@@ -176,7 +221,11 @@ fun AppNavigation() {
                     navController.navigate(Routes.Home) {
                         popUpTo(Routes.Home) {
                             inclusive = true
+                            saveState = false
                         }
+
+                        launchSingleTop = true
+                        restoreState = false
                     }
                 }
             )
@@ -190,7 +239,9 @@ fun AppNavigation() {
                 }
             )
         ) { backStackEntry ->
-            val roomId = backStackEntry.arguments?.getLong("roomId") ?: return@composable
+            val roomId =
+                backStackEntry.arguments?.getLong("roomId")
+                    ?: return@composable
 
             RoomDetailsScreen(
                 roomId = roomId,
@@ -198,7 +249,9 @@ fun AppNavigation() {
                     navController.popBackStack()
                 },
                 onAdminClick = {
-                    navController.navigate(Routes.roomSettings(roomId))
+                    navController.navigate(
+                        Routes.roomSettings(roomId)
+                    )
                 }
             )
         }
@@ -211,9 +264,16 @@ fun AppNavigation() {
                 }
             )
         ) { backStackEntry ->
-            val roomId = backStackEntry.arguments?.getLong("roomId") ?: return@composable
-            val roomViewModel: RoomViewModel = viewModel()
-            val isAdmin by roomViewModel.observeIsCurrentUserAdmin(roomId)
+            val roomId =
+                backStackEntry.arguments?.getLong("roomId")
+                    ?: return@composable
+
+            val roomViewModel: RoomViewModel = viewModel(
+                viewModelStoreOwner = backStackEntry
+            )
+
+            val isAdmin by roomViewModel
+                .observeIsCurrentUserAdmin(roomId)
                 .collectAsState(initial = false)
 
             if (isAdmin) {
@@ -226,14 +286,22 @@ fun AppNavigation() {
                         navController.navigate(Routes.Home) {
                             popUpTo(Routes.Home) {
                                 inclusive = true
+                                saveState = false
                             }
+
+                            launchSingleTop = true
+                            restoreState = false
                         }
                     },
                     onLeaveRoomSuccess = {
                         navController.navigate(Routes.Home) {
                             popUpTo(Routes.Home) {
                                 inclusive = true
+                                saveState = false
                             }
+
+                            launchSingleTop = true
+                            restoreState = false
                         }
                     },
                     viewModel = roomViewModel
@@ -248,7 +316,11 @@ fun AppNavigation() {
                         navController.navigate(Routes.Home) {
                             popUpTo(Routes.Home) {
                                 inclusive = true
+                                saveState = false
                             }
+
+                            launchSingleTop = true
+                            restoreState = false
                         }
                     },
                     viewModel = roomViewModel
